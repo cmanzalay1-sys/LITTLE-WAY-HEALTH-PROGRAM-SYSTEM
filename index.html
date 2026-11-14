@@ -141,42 +141,34 @@
               </div>
             </div>
 
-            <!-- RIGHT COLUMN: Seminarian Info Form, Temperature Form & History Log -->
+            <!-- RIGHT COLUMN: Seminarian Auto-Saving Info, Temperature Form & History Log -->
             <div class="col-lg-8">
               <div class="card border-0 shadow-sm p-3 mb-3">
-                <h6 class="fw-bold text-primary mb-3">Seminarian Information</h6>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <h6 class="fw-bold text-primary mb-0">Seminarian Information</h6>
+                  <span id="auto-save-indicator" class="small text-muted fst-italic">Auto-saved</span>
+                </div>
+                <!-- Seminarian Info Form (Auto-saves on change) -->
                 <form id="seminarian-form">
                   <div class="row g-2 mb-2">
                     <div class="col-md-6">
                       <label class="form-label small fw-semibold mb-1">Full Name</label>
-                      <input type="text" id="info-name" class="form-control form-control-sm" placeholder="e.g. John Doe" required />
+                      <input type="text" id="info-name" class="form-control form-control-sm autosave-field" placeholder="e.g. John Doe" required />
                     </div>
                     <div class="col-md-3">
                       <label class="form-label small fw-semibold mb-1">Age</label>
-                      <input type="number" id="info-age" class="form-control form-control-sm" placeholder="e.g. 20" required />
+                      <input type="number" id="info-age" class="form-control form-control-sm autosave-field" placeholder="e.g. 20" required />
                     </div>
                     <div class="col-md-3">
                       <label class="form-label small fw-semibold mb-1">Formation Level</label>
-                      <input type="text" id="info-level" class="form-control form-control-sm" placeholder="e.g. Philosophy I" required />
+                      <input type="text" id="info-level" class="form-control form-control-sm autosave-field" placeholder="e.g. Philosophy I" required />
                     </div>
                   </div>
-                  <div class="row g-2 mb-2">
-                    <div class="col-md-6">
+                  <div class="row g-2">
+                    <div class="col-md-12">
                       <label class="form-label small fw-semibold mb-1">Address</label>
-                      <input type="text" id="info-address" class="form-control form-control-sm" placeholder="e.g. Kabankalan City" required />
+                      <input type="text" id="info-address" class="form-control form-control-sm autosave-field" placeholder="e.g. Kabankalan City" required />
                     </div>
-                    <div class="col-md-3">
-                      <label class="form-label small fw-semibold mb-1">Height (cm)</label>
-                      <input type="text" id="info-height" class="form-control form-control-sm" placeholder="e.g. 170" required />
-                    </div>
-                    <div class="col-md-3">
-                      <label class="form-label small fw-semibold mb-1">Weight (kg)</label>
-                      <input type="text" id="info-weight" class="form-control form-control-sm" placeholder="e.g. 65" required />
-                    </div>
-                  </div>
-                  <div class="d-flex justify-content-between align-items-center">
-                    <button type="submit" id="info-submit-btn" class="btn btn-primary btn-sm px-4">Enter Info</button>
-                    <span id="info-message" class="small text-success fw-semibold d-none">Saved successfully!</span>
                   </div>
                 </form>
               </div>
@@ -224,7 +216,7 @@
                 <div class="d-flex justify-content-between align-items-center mb-2">
                   <h6 class="fw-bold mb-0 text-secondary">My Permanent Temperature Records</h6>
                   <div>
-                    <button id="clear-view-btn" class="btn btn-outline-danger btn-sm me-1">Clear History View</button>
+                    <button id="clear-view-btn" class="btn btn-outline-danger btn-sm me-1">Clear View</button>
                     <button id="refresh-history-btn" class="btn btn-outline-secondary btn-sm">Refresh</button>
                   </div>
                 </div>
@@ -235,7 +227,7 @@
                 </div>
 
                 <p id="history-empty" class="text-muted small text-center py-2 d-none">
-                  No recorded logs found yet. Enter your temperature above and click to save permanently!
+                  No recorded logs found yet. Enter your temperature above and click!
                 </p>
 
                 <div id="history-table-wrapper" class="table-responsive d-none" style="max-height: 220px; overflow-y: auto;">
@@ -262,7 +254,7 @@
           <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
               <h3 class="fw-bold text-dark mb-0">Admin Tracing Dashboard</h3>
-              <p class="text-muted small mb-0">Live monitoring of all seminarian profiles and temperature logs across the seminary.</p>
+              <p class="text-muted small mb-0">Live monitoring & management of all seminarians and logs. Only admins can edit/manage records.</p>
             </div>
             <button id="admin-refresh-btn" class="btn btn-primary btn-sm">Refresh All Data</button>
           </div>
@@ -291,8 +283,7 @@
                       <th>Age</th>
                       <th>Formation Level</th>
                       <th>Address</th>
-                      <th>Height (cm)</th>
-                      <th>Weight (kg)</th>
+                      <th>Email / ID</th>
                     </tr>
                   </thead>
                   <tbody id="admin-profiles-tbody"></tbody>
@@ -310,7 +301,7 @@
                   <thead class="table-dark">
                     <tr>
                       <th>Date & Time</th>
-                      <th>Seminarian Email / User ID</th>
+                      <th>Seminarian Email</th>
                       <th>Temperature</th>
                       <th>Status</th>
                     </tr>
@@ -370,10 +361,10 @@
     const googleProvider = new GoogleAuthProvider();
     googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-    // SPECIFY AUTHORIZED ADMIN EMAILS HERE
+    // AUTHORIZED ADMIN EMAILS
     const ADMIN_EMAILS = [
-      "carlomanzalay20@gmail.com",
-      "cmanzalay1@gmail.com" // Replace or add your email
+      "cmanzalay1@gmail.com",
+      "carlomanzalay20@gmail.com"
     ];
 
     let currentUser = null;
@@ -396,15 +387,11 @@
     const liveDateEl = document.getElementById('live-date');
     const liveTimeEl = document.getElementById('live-time');
 
-    const seminarianForm = document.getElementById('seminarian-form');
     const infoName = document.getElementById('info-name');
     const infoAge = document.getElementById('info-age');
     const infoLevel = document.getElementById('info-level');
     const infoAddress = document.getElementById('info-address');
-    const infoHeight = document.getElementById('info-height');
-    const infoWeight = document.getElementById('info-weight');
-    const infoSubmitBtn = document.getElementById('info-submit-btn');
-    const infoMessage = document.getElementById('info-message');
+    const autoSaveIndicator = document.getElementById('auto-save-indicator');
 
     const recordForm = document.getElementById('record-form');
     const temperatureInput = document.getElementById('temperature-input');
@@ -463,7 +450,6 @@
           userPhoto.classList.add('d-none');
         }
 
-        // Check if user is Admin
         if (ADMIN_EMAILS.includes(user.email)) {
           portalTitle.textContent = "Admin Tracing Portal";
           dashboardView.classList.add('d-none');
@@ -502,35 +488,36 @@
       await signOut(auth);
     });
 
-    // Save Seminarian Info
-    seminarianForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
+    // INSTANT AUTO-SAVE FOR SEMINARIAN INFO
+    let autoSaveTimer = null;
+    function triggerAutoSave() {
       if (!currentUser) return;
+      clearTimeout(autoSaveTimer);
+      autoSaveIndicator.textContent = "Saving...";
+      autoSaveIndicator.className = "small text-warning fw-semibold fst-italic";
 
-      infoSubmitBtn.disabled = true;
-      infoSubmitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-      infoMessage.classList.add('d-none');
+      autoSaveTimer = setTimeout(async () => {
+        try {
+          await setDoc(doc(db, "seminarian_profiles", currentUser.uid), {
+            userId: currentUser.uid,
+            email: currentUser.email || 'No Email',
+            name: infoName.value,
+            age: infoAge.value,
+            level: infoLevel.value,
+            address: infoAddress.value,
+            updatedAt: serverTimestamp()
+          }, { merge: true });
+          autoSaveIndicator.textContent = "Auto-saved";
+          autoSaveIndicator.className = "small text-success fw-semibold fst-italic";
+        } catch (error) {
+          autoSaveIndicator.textContent = "Save failed";
+          autoSaveIndicator.className = "small text-danger fw-semibold fst-italic";
+        }
+      }, 500);
+    }
 
-      try {
-        await setDoc(doc(db, "seminarian_profiles", currentUser.uid), {
-          userId: currentUser.uid,
-          email: currentUser.email || 'No Email',
-          name: infoName.value,
-          age: infoAge.value,
-          level: infoLevel.value,
-          address: infoAddress.value,
-          height: infoHeight.value,
-          weight: infoWeight.value,
-          updatedAt: serverTimestamp()
-        });
-        infoMessage.classList.remove('d-none');
-        setTimeout(() => infoMessage.classList.add('d-none'), 3000);
-      } catch (error) {
-        alert(`Error saving info: ${error.message}`);
-      } finally {
-        infoSubmitBtn.innerHTML = 'Enter Info';
-        infoSubmitBtn.disabled = false;
-      }
+    document.querySelectorAll('.autosave-field').forEach(input => {
+      input.addEventListener('input', triggerAutoSave);
     });
 
     async function loadSeminarianInfo(uid) {
@@ -542,8 +529,6 @@
           infoAge.value = data.age || '';
           infoLevel.value = data.level || '';
           infoAddress.value = data.address || '';
-          infoHeight.value = data.height || '';
-          infoWeight.value = data.weight || '';
         }
       } catch (e) {
         console.error("Error loading profile:", e);
@@ -609,7 +594,7 @@
         saveMessage.className = 'alert alert-success py-1 small text-center';
         saveMessage.textContent = 'Recorded permanently!';
         saveMessage.classList.remove('d-none');
-        setTimeout(() => saveMessage.classList.add('d-none'), 2500);
+        setTimeout(() => saveMessage.classList.add('d-none'), 2000);
 
         await addDoc(collection(db, "temperature_records"), {
           userId: currentUser.uid,
@@ -697,7 +682,6 @@
 
     // ADMIN TRACING FUNCTIONS
     async function loadAdminData() {
-      // 1. Load Profiles
       adminProfilesLoading.classList.remove('d-none');
       adminProfilesTable.classList.add('d-none');
       try {
@@ -710,8 +694,7 @@
               <td>${p.age || 'N/A'}</td>
               <td>${p.level || 'N/A'}</td>
               <td>${p.address || 'N/A'}</td>
-              <td>${p.height || 'N/A'}</td>
-              <td>${p.weight || 'N/A'}</td>
+              <td>${p.email || 'N/A'}</td>
             </tr>
           `).join('');
           adminProfilesTable.classList.remove('d-none');
@@ -722,7 +705,6 @@
         adminProfilesLoading.classList.add('d-none');
       }
 
-      // 2. Load All Temperature Logs
       adminLogsLoading.classList.remove('d-none');
       adminLogsTable.classList.add('d-none');
       try {
