@@ -17,7 +17,7 @@
   </div>
 
   <!-- Main Portal Container -->
-  <div id="main-portal" class="container py-5 d-none" style="max-width: 650px;">
+  <div id="main-portal" class="container py-5 d-none" style="max-width: 900px;">
     <div class="card shadow-sm">
       
       <!-- Header -->
@@ -102,7 +102,7 @@
       <div class="card-body p-4">
 
         <!-- LOGIN VIEW -->
-        <div id="login-view" class="text-center py-4">
+        <div id="login-view" class="text-center py-4" style="max-width: 550px; margin: 0 auto;">
           <div class="mb-4">
             <div class="mb-3">
               <!-- Large LWCS Seal -->
@@ -174,7 +174,7 @@
             <p class="text-muted small">Diocese of Kabankalan — Health Monitoring Portal</p>
           </div>
 
-          <h5 class="mb-4">Sign in with your Google account to record your temperature</h5>
+          <h5 class="mb-4">Sign in with your Google account to record and track your temperature</h5>
 
           <!-- In-App Browser Warning -->
           <div id="inapp-warning" class="alert alert-warning text-start small mb-3 d-none">
@@ -191,42 +191,97 @@
           </div>
         </div>
 
-        <!-- DASHBOARD VIEW -->
+        <!-- DASHBOARD VIEW (Two Columns: Left Clock, Right Recording & History) -->
         <div id="dashboard-view" class="d-none">
-          <form id="record-form">
-            <div class="mb-3">
-              <label for="temperature-input" class="form-label fw-semibold">Enter Current Temperature</label>
-              <div class="row g-2">
-                <div class="col-7">
-                  <input 
-                    type="number" 
-                    step="0.1" 
-                    id="temperature-input" 
-                    class="form-control" 
-                    placeholder="e.g. 37.5" 
-                    required 
-                  />
-                </div>
-                <div class="col-3">
-                  <select id="unit-select" class="form-select">
-                    <option value="C">°C</option>
-                    <option value="F">°F</option>
-                  </select>
-                </div>
-                <div class="col-2">
-                  <button type="submit" id="save-btn" class="btn btn-success w-100" disabled>
-                    Save
-                  </button>
+          <div class="row g-4">
+            
+            <!-- LEFT COLUMN: Live Clock & Date -->
+            <div class="col-lg-4">
+              <div class="card bg-light border-0 h-100 shadow-sm">
+                <div class="card-body text-center d-flex flex-column justify-content-center py-4">
+                  <h6 class="text-muted text-uppercase small fw-bold mb-3">Current Date & Time</h6>
+                  <div id="live-date" class="fw-semibold text-secondary mb-1" style="font-size: 1.1rem;"></div>
+                  <div id="live-time" class="fw-bold text-primary display-6 mb-2"></div>
+                  <p class="text-muted small mb-0">Seminary Health Tracker</p>
                 </div>
               </div>
             </div>
-          </form>
 
-          <!-- Save Feedback Alert -->
-          <div id="save-message" class="alert py-2 text-center d-none"></div>
+            <!-- RIGHT COLUMN: Temperature Form & History Log -->
+            <div class="col-lg-8">
+              <div class="card border-0 shadow-sm p-3">
+                
+                <!-- Recording Form -->
+                <form id="record-form">
+                  <div class="mb-3">
+                    <label for="temperature-input" class="form-label fw-semibold">Record New Temperature</label>
+                    <div class="row g-2">
+                      <div class="col-7">
+                        <input 
+                          type="number" 
+                          step="0.1" 
+                          id="temperature-input" 
+                          class="form-control" 
+                          placeholder="e.g. 37.5" 
+                          required 
+                        />
+                      </div>
+                      <div class="col-3">
+                        <select id="unit-select" class="form-select">
+                          <option value="C">°C</option>
+                          <option value="F">°F</option>
+                        </select>
+                      </div>
+                      <div class="col-2">
+                        <button type="submit" id="save-btn" class="btn btn-success w-100" disabled>
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </form>
 
-          <!-- Live Fever Status Preview -->
-          <div id="status-preview" class="alert text-center mb-0 d-none"></div>
+                <!-- Save Feedback Alert -->
+                <div id="save-message" class="alert py-2 text-center d-none"></div>
+
+                <!-- Live Fever Status Preview -->
+                <div id="status-preview" class="alert text-center mb-3 d-none"></div>
+
+                <hr class="my-3" />
+
+                <!-- Past Temperature History Section -->
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <h6 class="fw-bold mb-0 text-secondary">My Past Temperature Records</h6>
+                  <button id="refresh-history-btn" class="btn btn-outline-secondary btn-sm">Refresh</button>
+                </div>
+
+                <div id="history-error" class="alert alert-danger small d-none"></div>
+                
+                <div id="history-loading" class="text-center py-3 d-none">
+                  <div class="spinner-border spinner-border-sm text-primary" role="status"></div> Loading history...
+                </div>
+
+                <p id="history-empty" class="text-muted small text-center py-2 d-none">
+                  No recorded logs found yet. Enter your temperature above to start tracking!
+                </p>
+
+                <div id="history-table-wrapper" class="table-responsive d-none" style="max-height: 250px; overflow-y: auto;">
+                  <table class="table table-striped table-bordered table-hover table-sm mb-0">
+                    <thead class="table-light sticky-top">
+                      <tr>
+                        <th>Date & Time</th>
+                        <th>Temp</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody id="history-tbody"></tbody>
+                  </table>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
         </div>
 
       </div>
@@ -247,6 +302,10 @@
       getFirestore, 
       collection, 
       addDoc, 
+      query, 
+      where, 
+      orderBy, 
+      getDocs, 
       serverTimestamp 
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
@@ -282,12 +341,31 @@
     const googleLoginBtn = document.getElementById('google-login-btn');
     const logoutBtn = document.getElementById('logout-btn');
 
+    const liveDateEl = document.getElementById('live-date');
+    const liveTimeEl = document.getElementById('live-time');
+
     const recordForm = document.getElementById('record-form');
     const temperatureInput = document.getElementById('temperature-input');
     const unitSelect = document.getElementById('unit-select');
     const saveBtn = document.getElementById('save-btn');
     const saveMessage = document.getElementById('save-message');
     const statusPreview = document.getElementById('status-preview');
+
+    const refreshHistoryBtn = document.getElementById('refresh-history-btn');
+    const historyError = document.getElementById('history-error');
+    const historyLoading = document.getElementById('history-loading');
+    const historyEmpty = document.getElementById('history-empty');
+    const historyTableWrapper = document.getElementById('history-table-wrapper');
+    const historyTbody = document.getElementById('history-tbody');
+
+    // Live Clock & Date Interval
+    function updateClock() {
+      const now = new Date();
+      liveDateEl.textContent = now.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
+      liveTimeEl.textContent = now.toLocaleTimeString();
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
 
     // Detect Messenger / Instagram / Facebook in-app browser
     if (/FBAN|FBAV|Messenger|Instagram/i.test(navigator.userAgent)) {
@@ -313,11 +391,14 @@
         } else {
           userPhoto.classList.add('d-none');
         }
+
+        fetchUserHistory(user.uid);
       } else {
         loginView.classList.remove('d-none');
         dashboardView.classList.add('d-none');
         userHeaderControls.classList.add('d-none');
         userHeaderControls.classList.remove('d-flex');
+        historyTbody.innerHTML = '';
       }
     });
 
@@ -362,7 +443,7 @@
       const status = getFeverStatus();
       if (status && temperatureInput.value !== '') {
         saveBtn.disabled = false;
-        statusPreview.className = `alert alert-${status.variant} text-center mb-0`;
+        statusPreview.className = `alert alert-${status.variant} text-center mb-2 py-2`;
         statusPreview.innerHTML = `<span class="fw-bold">${status.label}</span> (${temperatureInput.value} °${unit})`;
       } else {
         saveBtn.disabled = true;
@@ -398,6 +479,7 @@
         saveMessage.textContent = 'Recorded successfully!';
         temperatureInput.value = '';
         updatePreview();
+        fetchUserHistory(currentUser.uid);
       } catch (error) {
         saveMessage.className = 'alert alert-danger py-2 text-center';
         saveMessage.textContent = `Database Error: ${error.message}`;
@@ -405,6 +487,78 @@
         saveBtn.innerHTML = 'Save';
         updatePreview();
       }
+    });
+
+    // Render Records Helper
+    function renderRecords(records) {
+      if (records.length === 0) {
+        historyEmpty.classList.remove('d-none');
+      } else {
+        historyTbody.innerHTML = records.map(rec => {
+          const badgeClass = rec.status.includes('High') 
+            ? 'danger' 
+            : rec.status.includes('Fever') 
+              ? 'warning text-dark' 
+              : 'success';
+          return `
+            <tr>
+              <td>${rec.date}</td>
+              <td class="fw-semibold">${rec.temperature} °${rec.unit}</td>
+              <td><span class="badge bg-${badgeClass}">${rec.status}</span></td>
+            </tr>
+          `;
+        }).join('');
+        historyTableWrapper.classList.remove('d-none');
+      }
+    }
+
+    // Fetch User History from Firestore
+    async function fetchUserHistory(uid) {
+      historyLoading.classList.remove('d-none');
+      historyEmpty.classList.add('d-none');
+      historyTableWrapper.classList.add('d-none');
+      historyError.classList.add('d-none');
+
+      try {
+        const q = query(
+          collection(db, "temperature_records"),
+          where("userId", "==", uid),
+          orderBy("createdAt", "desc")
+        );
+        const snapshot = await getDocs(q);
+        const records = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          date: doc.data().createdAt ? doc.data().createdAt.toDate().toLocaleString() : 'Just now'
+        }));
+        renderRecords(records);
+      } catch (error) {
+        try {
+          const fallbackQuery = query(
+            collection(db, "temperature_records"),
+            where("userId", "==", uid)
+          );
+          const fallbackSnapshot = await getDocs(fallbackQuery);
+          const records = fallbackSnapshot.docs
+            .map(doc => ({
+              id: doc.id,
+              ...doc.data(),
+              rawTime: doc.data().createdAt ? doc.data().createdAt.toMillis() : Date.now(),
+              date: doc.data().createdAt ? doc.data().createdAt.toDate().toLocaleString() : 'Just now'
+            }))
+            .sort((a, b) => b.rawTime - a.rawTime);
+          renderRecords(records);
+        } catch (fallbackError) {
+          historyError.textContent = `Database Fetch Error: ${fallbackError.message}`;
+          historyError.classList.remove('d-none');
+        }
+      } finally {
+        historyLoading.classList.add('d-none');
+      }
+    }
+
+    refreshHistoryBtn.addEventListener('click', () => {
+      if (currentUser) fetchUserHistory(currentUser.uid);
     });
   </script>
 </body>
