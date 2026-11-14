@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LWCS Fever Tracker Portal</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Google reCAPTCHA v2 API -->
+  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+</head>
+<body class="bg-light">
+
+  <!-- Loading Screen -->
+  <div id="loading-screen" class="container d-flex justify-content-center align-items-center min-vh-100">
+    <div class="spinner-border text-primary" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+  </div>
+
+  <!-- Main Portal Container -->
+  <div id="main-portal" class="container py-5 d-none" style="max-width: 650px;">
+    <div class="card shadow-sm">
+      
+      <!-- Header -->
+      <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
+        <div class="d-flex align-items-center gap-2">
+          <!-- Small LWCS Seal -->
+          <svg width="42" height="42" viewBox="0 0 200 200" style="display: inline-block;">
+            <defs>
+              <path id="topArcSm" d="M 28,100 A 72,72 0 1,1 172,100" />
+              <path id="bottomArcSm" d="M 26,105 A 74,74 0 0,0 174,105" />
+              <clipPath id="innerCircleSm"><circle cx="100" cy="100" r="61" /></clipPath>
+            </defs>
+            <circle cx="100" cy="100" r="98" fill="#ffffff" />
+            <circle cx="100" cy="100" r="95" fill="#fff02a" stroke="#111111" stroke-width="3" />
+            <circle cx="100" cy="100" r="62" fill="#0095ff" stroke="#111111" stroke-width="2.5" />
+            <text fill="#111111" font-size="14.5" font-weight="bold" font-family="Georgia, serif" letter-spacing="0.4">
+              <textPath href="#topArcSm" startOffset="50%" text-anchor="middle">Little Way College Seminary</textPath>
+            </text>
+            <text fill="#111111" font-size="12.5" font-weight="bold" font-family="Georgia, serif" letter-spacing="0.5">
+              <textPath href="#bottomArcSm" startOffset="50%" text-anchor="middle">Diocese of Kabankalan</textPath>
+            </text>
+            <polygon points="24,113 26.5,120 34,120 28,124.5 30,131.5 24,127 18,131.5 20,124.5 14,120 21.5,120" fill="#111111" />
+            <polygon points="176,113 178.5,120 186,120 180,124.5 182,131.5 176,127 170,131.5 172,124.5 166,120 173.5,120" fill="#111111" />
+            <g clip-path="url(#innerCircleSm)">
+              <rect x="35" y="35" width="130" height="130" fill="#0099ff" />
+              <polygon points="100,82 40,82 52,55" fill="#009933" />
+              <polygon points="100,82 52,55 82,38" fill="#fff200" />
+              <polygon points="100,82 82,38 118,38" fill="#ffffff" />
+              <polygon points="100,82 118,38 148,55" fill="#0033cc" />
+              <polygon points="100,82 148,55 160,82" fill="#cc0000" />
+              <circle cx="100" cy="49" r="6.5" fill="#e69900" stroke="#111" stroke-width="1.2" />
+              <circle cx="100" cy="49" r="3" fill="#ffffff" />
+              <ellipse cx="100" cy="155" rx="60" ry="22" fill="#7ac943" />
+              <ellipse cx="73" cy="118" rx="14" ry="20" fill="#ffffff" stroke="#8c6239" stroke-width="1.5" />
+              <ellipse cx="73" cy="119" rx="11.5" ry="17.5" fill="#e6f2ff" />
+              <path d="M 64,132 Q 73,112 82,132 Z" fill="#5c3a21" />
+              <path d="M 66,124 Q 73,113 80,124 L 78,133 L 68,133 Z" fill="#f5e6cc" />
+              <circle cx="73" cy="111" r="4.5" fill="#ffe0bd" />
+              <path d="M 68,112 Q 73,104 78,112 L 79,118 L 67,118 Z" fill="#2b1b10" />
+              <circle cx="75" cy="123" r="1.5" fill="#ff4d6d" />
+              <circle cx="77" cy="125" r="1.5" fill="#ff8fa3" />
+              <rect x="123" y="96" width="10" height="18" fill="#ffffff" stroke="#666" stroke-width="0.7" />
+              <polygon points="122,96 128,87 134,96" fill="#b32400" />
+              <line x1="128" y1="83" x2="128" y2="88" stroke="#4d1a00" stroke-width="1.2" />
+              <line x1="126" y1="85" x2="130" y2="85" stroke="#4d1a00" stroke-width="1.2" />
+              <rect x="126" y="100" width="4" height="5" rx="2" fill="#ffcc00" />
+              <rect x="115" y="114" width="26" height="16" fill="#ffffff" stroke="#666" stroke-width="0.7" />
+              <polygon points="113,114 128,106 143,114" fill="#b32400" />
+              <circle cx="132" cy="127" r="2.5" fill="#ffe0bd" />
+              <rect x="129.5" y="129.5" width="5" height="9" fill="#222222" />
+              <circle cx="122" cy="131" r="2" fill="#ffe0bd" />
+              <rect x="120" y="133" width="4" height="6" fill="#ff4d4d" />
+              <circle cx="126" cy="132" r="2" fill="#ffe0bd" />
+              <rect x="124" y="134" width="4" height="6" fill="#3399ff" />
+              <path d="M 55,142 Q 52,120 48,103" stroke="#8c5319" stroke-width="2.2" fill="none" />
+              <path d="M 48,103 Q 38,98 36,106 M 48,103 Q 42,93 38,98 M 48,103 Q 55,94 58,102 M 48,103 Q 56,102 57,110" stroke="#228b22" stroke-width="2" fill="none" />
+              <path d="M 145,142 Q 148,120 152,103" stroke="#8c5319" stroke-width="2.2" fill="none" />
+              <path d="M 152,103 Q 162,98 164,106 M 152,103 Q 158,93 162,98 M 152,103 Q 145,94 142,102 M 152,103 Q 144,102 143,110" stroke="#228b22" stroke-width="2" fill="none" />
+              <rect x="95.5" y="60" width="9" height="102" fill="#2e9e2e" stroke="#145214" stroke-width="1" />
+              <rect x="52" y="84" width="96" height="8.5" fill="#2e9e2e" stroke="#145214" stroke-width="1" />
+              <line x1="95.5" y1="73" x2="104.5" y2="73" stroke="#145214" stroke-width="1.2" />
+              <line x1="95.5" y1="108" x2="104.5" y2="108" stroke="#145214" stroke-width="1.2" />
+              <line x1="95.5" y1="132" x2="104.5" y2="132" stroke="#145214" stroke-width="1.2" />
+              <line x1="72" y1="84" x2="72" y2="92.5" stroke="#145214" stroke-width="1.2" />
+              <line x1="128" y1="84" x2="128" y2="92.5" stroke="#145214" stroke-width="1.2" />
+              <line x1="95.5" y1="84" x2="104.5" y2="92.5" stroke="#d4af37" stroke-width="1.5" />
+              <line x1="104.5" y1="84" x2="95.5" y2="92.5" stroke="#d4af37" stroke-width="1.5" />
+            </g>
+          </svg>
+          <h4 class="mb-0">Fever Tracker Portal</h4>
+        </div>
+
+        <!-- User Info & Logout (Hidden when logged out) -->
+        <div id="user-header-controls" class="d-none align-items-center gap-2">
+          <img id="user-photo" src="" alt="Profile" class="d-none" style="width: 30px; height: 30px; border-radius: 50%;" />
+          <span id="user-name" class="small d-none d-sm-inline"></span>
+          <button id="logout-btn" class="btn btn-outline-light btn-sm">Logout</button>
+        </div>
+      </div>
+
+      <!-- Card Body -->
+      <div class="card-body p-4">
+
+        <!-- LOGIN VIEW -->
+        <div id="login-view" class="text-center py-4">
+          <div class="mb-4">
+            <div class="mb-3">
+              <!-- Large LWCS Seal -->
+              <svg width="135" height="135" viewBox="0 0 200 200" style="display: inline-block;">
+                <defs>
+                  <path id="topArcLg" d="M 28,100 A 72,72 0 1,1 172,100" />
+                  <path id="bottomArcLg" d="M 26,105 A 74,74 0 0,0 174,105" />
+                  <clipPath id="innerCircleLg"><circle cx="100" cy="100" r="61" /></clipPath>
+                </defs>
+                <circle cx="100" cy="100" r="98" fill="#ffffff" />
+                <circle cx="100" cy="100" r="95" fill="#fff02a" stroke="#111111" stroke-width="3" />
+                <circle cx="100" cy="100" r="62" fill="#0095ff" stroke="#111111" stroke-width="2.5" />
+                <text fill="#111111" font-size="14.5" font-weight="bold" font-family="Georgia, serif" letter-spacing="0.4">
+                  <textPath href="#topArcLg" startOffset="50%" text-anchor="middle">Little Way College Seminary</textPath>
+                </text>
+                <text fill="#111111" font-size="12.5" font-weight="bold" font-family="Georgia, serif" letter-spacing="0.5">
+                  <textPath href="#bottomArcLg" startOffset="50%" text-anchor="middle">Diocese of Kabankalan</textPath>
+                </text>
+                <polygon points="24,113 26.5,120 34,120 28,124.5 30,131.5 24,127 18,131.5 20,124.5 14,120 21.5,120" fill="#111111" />
+                <polygon points="176,113 178.5,120 186,120 180,124.5 182,131.5 176,127 170,131.5 172,124.5 166,120 173.5,120" fill="#111111" />
+                <g clip-path="url(#innerCircleLg)">
+                  <rect x="35" y="35" width="130" height="130" fill="#0099ff" />
+                  <polygon points="100,82 40,82 52,55" fill="#009933" />
+                  <polygon points="100,82 52,55 82,38" fill="#fff200" />
+                  <polygon points="100,82 82,38 118,38" fill="#ffffff" />
+                  <polygon points="100,82 118,38 148,55" fill="#0033cc" />
+                  <polygon points="100,82 148,55 160,82" fill="#cc0000" />
+                  <circle cx="100" cy="49" r="6.5" fill="#e69900" stroke="#111" stroke-width="1.2" />
+                  <circle cx="100" cy="49" r="3" fill="#ffffff" />
+                  <ellipse cx="100" cy="155" rx="60" ry="22" fill="#7ac943" />
+                  <ellipse cx="73" cy="118" rx="14" ry="20" fill="#ffffff" stroke="#8c6239" stroke-width="1.5" />
+                  <ellipse cx="73" cy="119" rx="11.5" ry="17.5" fill="#e6f2ff" />
+                  <path d="M 64,132 Q 73,112 82,132 Z" fill="#5c3a21" />
+                  <path d="M 66,124 Q 73,113 80,124 L 78,133 L 68,133 Z" fill="#f5e6cc" />
+                  <circle cx="73" cy="111" r="4.5" fill="#ffe0bd" />
+                  <path d="M 68,112 Q 73,104 78,112 L 79,118 L 67,118 Z" fill="#2b1b10" />
+                  <circle cx="75" cy="123" r="1.5" fill="#ff4d6d" />
+                  <circle cx="77" cy="125" r="1.5" fill="#ff8fa3" />
+                  <rect x="123" y="96" width="10" height="18" fill="#ffffff" stroke="#666" stroke-width="0.7" />
+                  <polygon points="122,96 128,87 134,96" fill="#b32400" />
+                  <line x1="128" y1="83" x2="128" y2="88" stroke="#4d1a00" stroke-width="1.2" />
+                  <line x1="126" y1="85" x2="130" y2="85" stroke="#4d1a00" stroke-width="1.2" />
+                  <rect x="126" y="100" width="4" height="5" rx="2" fill="#ffcc00" />
+                  <rect x="115" y="114" width="26" height="16" fill="#ffffff" stroke="#666" stroke-width="0.7" />
+                  <polygon points="113,114 128,106 143,114" fill="#b32400" />
+                  <circle cx="132" cy="127" r="2.5" fill="#ffe0bd" />
+                  <rect x="129.5" y="129.5" width="5" height="9" fill="#222222" />
+                  <circle cx="122" cy="131" r="2" fill="#ffe0bd" />
+                  <rect x="120" y="133" width="4" height="6" fill="#ff4d4d" />
+                  <circle cx="126" cy="132" r="2" fill="#ffe0bd" />
+                  <rect x="124" y="134" width="4" height="6" fill="#3399ff" />
+                  <path d="M 55,142 Q 52,120 48,103" stroke="#8c5319" stroke-width="2.2" fill="none" />
+                  <path d="M 48,103 Q 38,98 36,106 M 48,103 Q 42,93 38,98 M 48,103 Q 55,94 58,102 M 48,103 Q 56,102 57,110" stroke="#228b22" stroke-width="2" fill="none" />
+                  <path d="M 145,142 Q 148,120 152,103" stroke="#8c5319" stroke-width="2.2" fill="none" />
+                  <path d="M 152,103 Q 162,98 164,106 M 152,103 Q 158,93 162,98 M 152,103 Q 145,94 142,102 M 152,103 Q 144,102 143,110" stroke="#228b22" stroke-width="2" fill="none" />
+                  <rect x="95.5" y="60" width="9" height="102" fill="#2e9e2e" stroke="#145214" stroke-width="1" />
+                  <rect x="52" y="84" width="96" height="8.5" fill="#2e9e2e" stroke="#145214" stroke-width="1" />
+                  <line x1="95.5" y1="73" x2="104.5" y2="73" stroke="#145214" stroke-width="1.2" />
+                  <line x1="95.5" y1="108" x2="104.5" y2="108" stroke="#145214" stroke-width="1.2" />
+                  <line x1="95.5" y1="132" x2="104.5" y2="132" stroke="#145214" stroke-width="1.2" />
+                  <line x1="72" y1="84" x2="72" y2="92.5" stroke="#145214" stroke-width="1.2" />
+                  <line x1="128" y1="84" x2="128" y2="92.5" stroke="#145214" stroke-width="1.2" />
+                  <line x1="95.5" y1="84" x2="104.5" y2="92.5" stroke="#d4af37" stroke-width="1.5" />
+                  <line x1="104.5" y1="84" x2="95.5" y2="92.5" stroke="#d4af37" stroke-width="1.5" />
+                </g>
+              </svg>
+            </div>
+            <h4 class="fw-bold text-primary mb-1">Little Way College Seminary</h4>
+            <p class="text-muted small">Diocese of Kabankalan — Health Monitoring Portal</p>
+          </div>
+
+          <h5 class="mb-4">Sign in with your Google account to view your private temperature log</h5>
+
+          <!-- In-App Browser Warning -->
+          <div id="inapp-warning" class="alert alert-warning text-start small mb-3 d-none">
+            <strong>Opened in Messenger?</strong> Google Sign-In does not work inside Messenger's built-in browser. Please tap the <strong>⋮</strong> or <strong>⋯</strong> menu in the corner and select <strong>Open in Chrome / Browser</strong>.
+          </div>
+
+          <!-- Auth Error Alert -->
+          <div id="auth-error" class="alert alert-danger text-start small user-select-all d-none"></div>
+
+          <!-- Google reCAPTCHA v2 Widget -->
+          <div class="d-flex justify-content-center mb-3">
+            <div 
+              class="g-recaptcha" 
+              data-sitekey="6LeteR8uAAAAAOEW9V7jCSsW-GLwibGlufFQegbf" 
+              data-callback="onCaptchaSuccess" 
+              data-expired-callback="onCaptchaExpired">
+            </div>
+          </div>
+
+          <div class="d-grid gap-3 col-md-8 mx-auto">
+            <button id="google-login-btn" class="btn btn-danger btn-lg" disabled>
+              Continue with Google
+            </button>
+          </div>
+        </div>
+
+        <!-- DASHBOARD VIEW (Hidden until logged in) -->
+        <div id="dashboard-view" class="d-none">
+          <form id="record-form">
+            <div class="mb-3">
+              <label for="temperature-input" class="form-label fw-semibold">Enter Current Temperature</label>
+              <div class="row g-2">
+                <div class="col-7">
+                  <input 
+                    type="number" 
+                    step="0.1" 
+                    id="temperature-input" 
+                    class="form-control" 
+                    placeholder="e.g. 37.5" 
+                    required 
+                  />
+                </div>
+                <div class="col-3">
+                  <select id="unit-select" class="form-select">
+                    <option value="C">°C</option>
+                    <option value="F">°F</option>
+                  </select>
+                </div>
+                <div class="col-2">
+                  <button type="submit" id="save-btn" class="btn btn-success w-100" disabled>
+                    Save
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+
+          <!-- Save Feedback Alert -->
+          <div id="save-message" class="alert py-2 text-center d-none"></div>
+
+          <!-- Live Fever Status Preview -->
+          <div id="status-preview" class="alert text-center mb-4 d-none"></div>
+
+          <hr class="my-4" />
+
+          <h5 class="mb-3">My Private Temperature History</h5>
+          
+          <div id="history-loading" class="text-center py-3 d-none">
+            <div class="spinner-border spinner-border-sm" role="status"></div> Loading your records...
+          </div>
+
+          <p id="history-empty" class="text-muted text-center d-none">
+            No temperature records found for your account.
+          </p>
+
+          <div id="history-table-wrapper" class="table-responsive d-none">
+            <table class="table table-striped table-bordered table-hover table-sm">
+              <thead>
+                <tr>
+                  <th>Date & Time</th>
+                  <th>Temp</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="history-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Global reCAPTCHA callbacks -->
+  <script>
+    window.captchaVerified = false;
+
+    window.onCaptchaSuccess = function(token) {
+      window.captchaVerified = !!token;
+      document.getElementById('google-login-btn').disabled = !window.captchaVerified;
+      document.getElementById('auth-error').classList.add('d-none');
+    };
+
+    window.onCaptchaExpired = function() {
+      window.captchaVerified = false;
+      document.getElementById('google-login-btn').disabled = true;
+    };
+  </script>
+
+  <!-- Firebase Modular SDK (v10.8.0 via CDN) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { 
+      getAuth, 
+      GoogleAuthProvider, 
+      signInWithPopup, 
+      signOut, 
+      onAuthStateChanged 
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { 
+      getFirestore, 
+      collection, 
+      addDoc, 
+      query, 
+      where, 
+      orderBy, 
+      getDocs, 
+      serverTimestamp 
+    } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCDqoxsSDKfiq84QbnhkiVKIzueZC9oFDg",
+      authDomain: "lwcs-health-monitoring-s-efe40.firebaseapp.com",
+      projectId: "lwcs-health-monitoring-s-efe40",
+      storageBucket: "lwcs-health-monitoring-s-efe40.firebasestorage.app",
+      messagingSenderId: "957745080870",
+      appId: "1:957745080870:web:616e4effdb21a9704894e7",
+      measurementId: "G-2V5FC5DZEM"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const googleProvider = new GoogleAuthProvider();
+    googleProvider.setCustomParameters({ prompt: 'select_account' });
+
+    let currentUser = null;
+
+    // DOM Elements
+    const loadingScreen = document.getElementById('loading-screen');
+    const mainPortal = document.getElementById('main-portal');
+    const loginView = document.getElementById('login-view');
+    const dashboardView = document.getElementById('dashboard-view');
+    const userHeaderControls = document.getElementById('user-header-controls');
+    const userPhoto = document.getElementById('user-photo');
+    const userName = document.getElementById('user-name');
+    const inappWarning = document.getElementById('inapp-warning');
+    const authError = document.getElementById('auth-error');
+    const googleLoginBtn = document.getElementById('google-login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    const recordForm = document.getElementById('record-form');
+    const temperatureInput = document.getElementById('temperature-input');
+    const unitSelect = document.getElementById('unit-select');
+    const saveBtn = document.getElementById('save-btn');
+    const saveMessage = document.getElementById('save-message');
+    const statusPreview = document.getElementById('status-preview');
+
+    const historyLoading = document.getElementById('history-loading');
+    const historyEmpty = document.getElementById('history-empty');
+    const historyTableWrapper = document.getElementById('history-table-wrapper');
+    const historyTbody = document.getElementById('history-tbody');
+
+    // Detect Messenger / Instagram / Facebook in-app browser
+    if (/FBAN|FBAV|Messenger|Instagram/i.test(navigator.userAgent)) {
+      inappWarning.classList.remove('d-none');
+    }
+
+    // Auth State Listener
+    onAuthStateChanged(auth, (user) => {
+      currentUser = user;
+      loadingScreen.classList.add('d-none');
+      mainPortal.classList.remove('d-none');
+
+      if (user) {
+        loginView.classList.add('d-none');
+        dashboardView.classList.remove('d-none');
+        userHeaderControls.classList.remove('d-none');
+        userHeaderControls.classList.add('d-flex');
+
+        userName.textContent = user.displayName || user.email;
+        if (user.photoURL) {
+          userPhoto.src = user.photoURL;
+          userPhoto.classList.remove('d-none');
+        } else {
+          userPhoto.classList.add('d-none');
+        }
+
+        fetchUserHistory(user.uid);
+      } else {
+        loginView.classList.remove('d-none');
+        dashboardView.classList.add('d-none');
+        userHeaderControls.classList.add('d-none');
+        userHeaderControls.classList.remove('d-flex');
+        historyTbody.innerHTML = '';
+
+        if (window.grecaptcha && window.grecaptcha.reset) {
+          window.grecaptcha.reset();
+        }
+        window.captchaVerified = false;
+        googleLoginBtn.disabled = true;
+      }
+    });
+
+    // Google Login
+    googleLoginBtn.addEventListener('click', async () => {
+      if (!window.captchaVerified) {
+        authError.textContent = "Please complete the reCAPTCHA verification box first.";
+        authError.classList.remove('d-none');
+        return;
+      }
+      authError.classList.add('d-none');
+      try {
+        await signInWithPopup(auth, googleProvider);
+      } catch (error) {
+        authError.textContent = `${error.message} — Add this exact domain to Firebase Authorized Domains: ${window.location.hostname}`;
+        authError.classList.remove('d-none');
+      }
+    });
+
+    // Logout
+    logoutBtn.addEventListener('click', async () => {
+      await signOut(auth);
+    });
+
+    // Temperature Calculation Helpers
+    function getTempInCelsius() {
+      const val = parseFloat(temperatureInput.value);
+      if (isNaN(val)) return null;
+      return unitSelect.value === 'F' ? ((val - 32) * 5) / 9 : val;
+    }
+
+    function getFeverStatus() {
+      const tempC = getTempInCelsius();
+      if (tempC === null) return null;
+
+      if (tempC < 35.0) return { label: 'Hypothermia', variant: 'info' };
+      if (tempC <= 37.5) return { label: 'Normal Temperature', variant: 'success' };
+      if (tempC <= 38.0) return { label: 'Low-Grade Fever', variant: 'warning' };
+      if (tempC <= 39.5) return { label: 'Moderate Fever', variant: 'warning' };
+      return { label: 'High Fever!', variant: 'danger' };
+    }
+
+    function updatePreview() {
+      const unit = unitSelect.value;
+      temperatureInput.placeholder = unit === 'C' ? 'e.g. 37.5' : 'e.g. 99.5';
+
+      const status = getFeverStatus();
+      if (status && temperatureInput.value !== '') {
+        saveBtn.disabled = false;
+        statusPreview.className = `alert alert-${status.variant} text-center mb-4`;
+        statusPreview.innerHTML = `<span class="fw-bold">${status.label}</span> (${temperatureInput.value} °${unit})`;
+      } else {
+        saveBtn.disabled = true;
+        statusPreview.classList.add('d-none');
+      }
+    }
+
+    temperatureInput.addEventListener('input', updatePreview);
+    unitSelect.addEventListener('change', updatePreview);
+
+    // Save Record to Firestore
+    recordForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const status = getFeverStatus();
+      if (!temperatureInput.value || !status || !currentUser) return;
+
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+      saveMessage.classList.add('d-none');
+
+      try {
+        await addDoc(collection(db, "temperature_records"), {
+          userId: currentUser.uid,
+          userEmail: currentUser.email || 'No Email',
+          temperature: parseFloat(temperatureInput.value),
+          unit: unitSelect.value,
+          tempC: getTempInCelsius(),
+          status: status.label,
+          createdAt: serverTimestamp()
+        });
+
+        saveMessage.className = 'alert alert-success py-2 text-center';
+        saveMessage.textContent = 'Recorded successfully!';
+        temperatureInput.value = '';
+        updatePreview();
+        fetchUserHistory(currentUser.uid);
+      } catch (error) {
+        saveMessage.className = 'alert alert-danger py-2 text-center';
+        saveMessage.textContent = `Database Error: ${error.message}`;
+      } finally {
+        saveBtn.innerHTML = 'Save';
+        updatePreview();
+      }
+    });
+
+    // Fetch User History from Firestore
+    async function fetchUserHistory(uid) {
+      historyLoading.classList.remove('d-none');
+      historyEmpty.classList.add('d-none');
+      historyTableWrapper.classList.add('d-none');
+
+      try {
+        const q = query(
+          collection(db, "temperature_records"),
+          where("userId", "==", uid),
+          orderBy("createdAt", "desc")
+        );
+        const snapshot = await getDocs(q);
+        const records = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          date: doc.data().createdAt ? doc.data().createdAt.toDate().toLocaleString() : 'Just now'
+        }));
+
+        if (records.length === 0) {
+          historyEmpty.classList.remove('d-none');
+        } else {
+          historyTbody.innerHTML = records.map(rec => {
+            const badgeClass = rec.status.includes('High') 
+              ? 'danger' 
+              : rec.status.includes('Fever') 
+                ? 'warning text-dark' 
+                : 'success';
+            return `
+              <tr>
+                <td>${rec.date}</td>
+                <td>${rec.temperature} °${rec.unit}</td>
+                <td><span class="badge bg-${badgeClass}">${rec.status}</span></td>
+              </tr>
+            `;
+          }).join('');
+          historyTableWrapper.classList.remove('d-none');
+        }
+      } catch (error) {
+        console.error("Fetch Error:", error);
+      } finally {
+        historyLoading.classList.add('d-none');
+      }
+    }
+  </script>
+</body>
+</html>
