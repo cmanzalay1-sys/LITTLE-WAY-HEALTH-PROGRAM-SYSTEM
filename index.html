@@ -92,7 +92,7 @@
           <h4 class="mb-0">Fever Tracker Portal</h4>
         </div>
 
-        <!-- User Info & Logout (Hidden when logged out) -->
+        <!-- User Info & Logout -->
         <div id="user-header-controls" class="d-none align-items-center gap-2">
           <img id="user-photo" src="" alt="Profile" class="d-none" style="width: 30px; height: 30px; border-radius: 50%;" />
           <span id="user-name" class="small d-none d-sm-inline"></span>
@@ -190,7 +190,7 @@
           <div class="d-flex justify-content-center mb-3">
             <div 
               class="g-recaptcha" 
-              data-sitekey="6LfQfx8uAAAAAKzlaD-f_JyDlrEeNYJpgHTqvlpD" 
+              data-sitekey="6LeteR8uAAAAAOEW9V7jCSsW-GLwibGlufFQegbf" 
               data-callback="onCaptchaSuccess" 
               data-expired-callback="onCaptchaExpired">
             </div>
@@ -203,7 +203,7 @@
           </div>
         </div>
 
-        <!-- DASHBOARD VIEW (Hidden until logged in) -->
+        <!-- DASHBOARD VIEW -->
         <div id="dashboard-view" class="d-none">
           <form id="record-form">
             <div class="mb-3">
@@ -243,6 +243,9 @@
           <hr class="my-4" />
 
           <h5 class="mb-3">My Private Temperature History</h5>
+
+          <!-- Database Fetch Error Alert -->
+          <div id="history-error" class="alert alert-danger small d-none"></div>
           
           <div id="history-loading" class="text-center py-3 d-none">
             <div class="spinner-border spinner-border-sm" role="status"></div> Loading your records...
@@ -346,6 +349,7 @@
     const saveMessage = document.getElementById('save-message');
     const statusPreview = document.getElementById('status-preview');
 
+    const historyError = document.getElementById('history-error');
     const historyLoading = document.getElementById('history-loading');
     const historyEmpty = document.getElementById('history-empty');
     const historyTableWrapper = document.getElementById('history-table-wrapper');
@@ -484,11 +488,35 @@
       }
     });
 
-    // Fetch User History from Firestore
+    // Render Records Helper
+    function renderRecords(records) {
+      if (records.length === 0) {
+        historyEmpty.classList.remove('d-none');
+      } else {
+        historyTbody.innerHTML = records.map(rec => {
+          const badgeClass = rec.status.includes('High') 
+            ? 'danger' 
+            : rec.status.includes('Fever') 
+              ? 'warning text-dark' 
+              : 'success';
+          return `
+            <tr>
+              <td>${rec.date}</td>
+              <td>${rec.temperature} °${rec.unit}</td>
+              <td><span class="badge bg-${badgeClass}">${rec.status}</span></td>
+            </tr>
+          `;
+        }).join('');
+        historyTableWrapper.classList.remove('d-none');
+      }
+    }
+
+    // Fetch User History from Firestore (with client-side fallback if composite index is missing)
     async function fetchUserHistory(uid) {
       historyLoading.classList.remove('d-none');
       historyEmpty.classList.add('d-none');
       historyTableWrapper.classList.add('d-none');
+      historyError.classList.add('d-none');
 
       try {
         const q = query(
@@ -502,28 +530,28 @@
           ...doc.data(),
           date: doc.data().createdAt ? doc.data().createdAt.toDate().toLocaleString() : 'Just now'
         }));
-
-        if (records.length === 0) {
-          historyEmpty.classList.remove('d-none');
-        } else {
-          historyTbody.innerHTML = records.map(rec => {
-            const badgeClass = rec.status.includes('High') 
-              ? 'danger' 
-              : rec.status.includes('Fever') 
-                ? 'warning text-dark' 
-                : 'success';
-            return `
-              <tr>
-                <td>${rec.date}</td>
-                <td>${rec.temperature} °${rec.unit}</td>
-                <td><span class="badge bg-${badgeClass}">${rec.status}</span></td>
-              </tr>
-            `;
-          }).join('');
-          historyTableWrapper.classList.remove('d-none');
-        }
+        renderRecords(records);
       } catch (error) {
-        console.error("Fetch Error:", error);
+        // Fallback: query without orderBy and sort in browser if composite index isn't ready
+        try {
+          const fallbackQuery = query(
+            collection(db, "temperature_records"),
+            where("userId", "==", uid)
+          );
+          const fallbackSnapshot = await getDocs(fallbackQuery);
+          const records = fallbackSnapshot.docs
+            .map(doc => ({
+              id: doc.id,
+              ...doc.data(),
+              rawTime: doc.data().createdAt ? doc.data().createdAt.toMillis() : Date.now(),
+              date: doc.data().createdAt ? doc.data().createdAt.toDate().toLocaleString() : 'Just now'
+            }))
+            .sort((a, b) => b.rawTime - a.rawTime);
+          renderRecords(records);
+        } catch (fallbackError) {
+          historyError.textContent = `Database Fetch Error: ${fallbackError.message}`;
+          historyError.classList.remove('d-none');
+        }
       } finally {
         historyLoading.classList.add('d-none');
       }
