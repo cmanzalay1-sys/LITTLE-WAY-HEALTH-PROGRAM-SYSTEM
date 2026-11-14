@@ -174,7 +174,7 @@
             <p class="text-muted small">Diocese of Kabankalan — Health Monitoring Portal</p>
           </div>
 
-          <h5 class="mb-4">Sign in with your Google account to view your private temperature log</h5>
+          <h5 class="mb-4">Sign in with your Google account to record your temperature</h5>
 
           <!-- In-App Browser Warning -->
           <div id="inapp-warning" class="alert alert-warning text-start small mb-3 d-none">
@@ -226,35 +226,7 @@
           <div id="save-message" class="alert py-2 text-center d-none"></div>
 
           <!-- Live Fever Status Preview -->
-          <div id="status-preview" class="alert text-center mb-4 d-none"></div>
-
-          <hr class="my-4" />
-
-          <h5 class="mb-3">My Private Temperature History</h5>
-
-          <!-- Database Fetch Error Alert -->
-          <div id="history-error" class="alert alert-danger small d-none"></div>
-          
-          <div id="history-loading" class="text-center py-3 d-none">
-            <div class="spinner-border spinner-border-sm" role="status"></div> Loading your records...
-          </div>
-
-          <p id="history-empty" class="text-muted text-center d-none">
-            No temperature records found for your account.
-          </p>
-
-          <div id="history-table-wrapper" class="table-responsive d-none">
-            <table class="table table-striped table-bordered table-hover table-sm">
-              <thead>
-                <tr>
-                  <th>Date & Time</th>
-                  <th>Temp</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody id="history-tbody"></tbody>
-            </table>
-          </div>
+          <div id="status-preview" class="alert text-center mb-0 d-none"></div>
         </div>
 
       </div>
@@ -275,10 +247,6 @@
       getFirestore, 
       collection, 
       addDoc, 
-      query, 
-      where, 
-      orderBy, 
-      getDocs, 
       serverTimestamp 
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
@@ -321,12 +289,6 @@
     const saveMessage = document.getElementById('save-message');
     const statusPreview = document.getElementById('status-preview');
 
-    const historyError = document.getElementById('history-error');
-    const historyLoading = document.getElementById('history-loading');
-    const historyEmpty = document.getElementById('history-empty');
-    const historyTableWrapper = document.getElementById('history-table-wrapper');
-    const historyTbody = document.getElementById('history-tbody');
-
     // Detect Messenger / Instagram / Facebook in-app browser
     if (/FBAN|FBAV|Messenger|Instagram/i.test(navigator.userAgent)) {
       inappWarning.classList.remove('d-none');
@@ -351,18 +313,15 @@
         } else {
           userPhoto.classList.add('d-none');
         }
-
-        fetchUserHistory(user.uid);
       } else {
         loginView.classList.remove('d-none');
         dashboardView.classList.add('d-none');
         userHeaderControls.classList.add('d-none');
         userHeaderControls.classList.remove('d-flex');
-        historyTbody.innerHTML = '';
       }
     });
 
-    // Google Login (Directly fires popup without reCAPTCHA checks)
+    // Google Login
     googleLoginBtn.addEventListener('click', async () => {
       authError.classList.add('d-none');
       try {
@@ -403,7 +362,7 @@
       const status = getFeverStatus();
       if (status && temperatureInput.value !== '') {
         saveBtn.disabled = false;
-        statusPreview.className = `alert alert-${status.variant} text-center mb-4`;
+        statusPreview.className = `alert alert-${status.variant} text-center mb-0`;
         statusPreview.innerHTML = `<span class="fw-bold">${status.label}</span> (${temperatureInput.value} °${unit})`;
       } else {
         saveBtn.disabled = true;
@@ -439,7 +398,6 @@
         saveMessage.textContent = 'Recorded successfully!';
         temperatureInput.value = '';
         updatePreview();
-        fetchUserHistory(currentUser.uid);
       } catch (error) {
         saveMessage.className = 'alert alert-danger py-2 text-center';
         saveMessage.textContent = `Database Error: ${error.message}`;
@@ -448,74 +406,6 @@
         updatePreview();
       }
     });
-
-    // Render Records Helper
-    function renderRecords(records) {
-      if (records.length === 0) {
-        historyEmpty.classList.remove('d-none');
-      } else {
-        historyTbody.innerHTML = records.map(rec => {
-          const badgeClass = rec.status.includes('High') 
-            ? 'danger' 
-            : rec.status.includes('Fever') 
-              ? 'warning text-dark' 
-              : 'success';
-          return `
-            <tr>
-              <td>${rec.date}</td>
-              <td>${rec.temperature} °${rec.unit}</td>
-              <td><span class="badge bg-${badgeClass}">${rec.status}</span></td>
-            </tr>
-          `;
-        }).join('');
-        historyTableWrapper.classList.remove('d-none');
-      }
-    }
-
-    // Fetch User History from Firestore
-    async function fetchUserHistory(uid) {
-      historyLoading.classList.remove('d-none');
-      historyEmpty.classList.add('d-none');
-      historyTableWrapper.classList.add('d-none');
-      historyError.classList.add('d-none');
-
-      try {
-        const q = query(
-          collection(db, "temperature_records"),
-          where("userId", "==", uid),
-          orderBy("createdAt", "desc")
-        );
-        const snapshot = await getDocs(q);
-        const records = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          date: doc.data().createdAt ? doc.data().createdAt.toDate().toLocaleString() : 'Just now'
-        }));
-        renderRecords(records);
-      } catch (error) {
-        try {
-          const fallbackQuery = query(
-            collection(db, "temperature_records"),
-            where("userId", "==", uid)
-          );
-          const fallbackSnapshot = await getDocs(fallbackQuery);
-          const records = fallbackSnapshot.docs
-            .map(doc => ({
-              id: doc.id,
-              ...doc.data(),
-              rawTime: doc.data().createdAt ? doc.data().createdAt.toMillis() : Date.now(),
-              date: doc.data().createdAt ? doc.data().createdAt.toDate().toLocaleString() : 'Just now'
-            }))
-            .sort((a, b) => b.rawTime - a.rawTime);
-          renderRecords(records);
-        } catch (fallbackError) {
-          historyError.textContent = `Database Fetch Error: ${fallbackError.message}`;
-          historyError.classList.remove('d-none');
-        }
-      } finally {
-        historyLoading.classList.add('d-none');
-      }
-    }
   </script>
 </body>
 </html>
