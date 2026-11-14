@@ -216,7 +216,7 @@
                   <div class="mb-3">
                     <label for="temperature-input" class="form-label fw-semibold">Record New Temperature</label>
                     <div class="row g-2">
-                      <div class="col-7">
+                      <div class="col-6">
                         <input 
                           type="number" 
                           step="0.1" 
@@ -226,15 +226,20 @@
                           required 
                         />
                       </div>
-                      <div class="col-3">
-                        <select id="unit-select" class="form-select">
+                      <div class="col-2">
+                        <select id="unit-select" class="form-select px-1">
                           <option value="C">°C</option>
                           <option value="F">°F</option>
                         </select>
                       </div>
                       <div class="col-2">
-                        <button type="submit" id="save-btn" class="btn btn-success w-100" disabled>
+                        <button type="submit" id="save-btn" class="btn btn-success w-100 px-1" disabled>
                           Click
+                        </button>
+                      </div>
+                      <div class="col-2">
+                        <button type="button" id="stop-btn" class="btn btn-outline-danger w-100 px-1">
+                          Stop
                         </button>
                       </div>
                     </div>
@@ -348,6 +353,7 @@
     const temperatureInput = document.getElementById('temperature-input');
     const unitSelect = document.getElementById('unit-select');
     const saveBtn = document.getElementById('save-btn');
+    const stopBtn = document.getElementById('stop-btn');
     const saveMessage = document.getElementById('save-message');
     const statusPreview = document.getElementById('status-preview');
 
@@ -454,7 +460,15 @@
     temperatureInput.addEventListener('input', updatePreview);
     unitSelect.addEventListener('change', updatePreview);
 
-    // Save Record to Firestore
+    // Stop Button Functionality (Clears input and preview)
+    stopBtn.addEventListener('click', () => {
+      temperatureInput.value = '';
+      statusPreview.classList.add('d-none');
+      saveBtn.disabled = true;
+      saveMessage.classList.add('d-none');
+    });
+
+    // Save Record to Firestore on "Click"
     recordForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const status = getFeverStatus();
