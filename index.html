@@ -17,7 +17,7 @@
   </div>
 
   <!-- Main Portal Container -->
-  <div id="main-portal" class="container py-5 d-none" style="max-width: 900px;">
+  <div id="main-portal" class="container py-5 d-none" style="max-width: 950px;">
     <div class="card shadow-sm">
       
       <!-- Header -->
@@ -207,13 +207,50 @@
               </div>
             </div>
 
-            <!-- RIGHT COLUMN: Temperature Form & History Log -->
+            <!-- RIGHT COLUMN: Seminarian Info Form, Temperature Form & History Log -->
             <div class="col-lg-8">
+              <div class="card border-0 shadow-sm p-3 mb-3">
+                <h6 class="fw-bold text-primary mb-3">Seminarian Information</h6>
+                <form id="seminarian-form">
+                  <div class="row g-2 mb-2">
+                    <div class="col-md-6">
+                      <label class="form-label small fw-semibold mb-1">Full Name</label>
+                      <input type="text" id="info-name" class="form-control form-control-sm" placeholder="e.g. John Doe" required />
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label small fw-semibold mb-1">Age</label>
+                      <input type="number" id="info-age" class="form-control form-control-sm" placeholder="e.g. 20" required />
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label small fw-semibold mb-1">Formation Level</label>
+                      <input type="text" id="info-level" class="form-control form-control-sm" placeholder="e.g. Philosophy I" required />
+                    </div>
+                  </div>
+                  <div class="row g-2 mb-2">
+                    <div class="col-md-6">
+                      <label class="form-label small fw-semibold mb-1">Address</label>
+                      <input type="text" id="info-address" class="form-control form-control-sm" placeholder="e.g. Kabankalan City" required />
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label small fw-semibold mb-1">Height (cm)</label>
+                      <input type="text" id="info-height" class="form-control form-control-sm" placeholder="e.g. 170" required />
+                    </div>
+                    <div class="col-md-3">
+                      <label class="form-label small fw-semibold mb-1">Weight (kg)</label>
+                      <input type="text" id="info-weight" class="form-control form-control-sm" placeholder="e.g. 65" required />
+                    </div>
+                  </div>
+                  <div class="d-flex justify-content-between align-items-center">
+                    <button type="submit" id="info-submit-btn" class="btn btn-primary btn-sm px-4">Enter Info</button>
+                    <span id="info-message" class="small text-success fw-semibold d-none">Saved successfully!</span>
+                  </div>
+                </form>
+              </div>
+
               <div class="card border-0 shadow-sm p-3">
-                
                 <!-- Recording Form -->
                 <form id="record-form">
-                  <div class="mb-3">
+                  <div class="mb-2">
                     <label for="temperature-input" class="form-label fw-semibold">Record New Temperature</label>
                     <div class="row g-2">
                       <div class="col-6">
@@ -257,7 +294,10 @@
                 <!-- Past Temperature History Section -->
                 <div class="d-flex justify-content-between align-items-center mb-2">
                   <h6 class="fw-bold mb-0 text-secondary">My Permanent Temperature Records</h6>
-                  <button id="refresh-history-btn" class="btn btn-outline-secondary btn-sm">Refresh</button>
+                  <div>
+                    <button id="clear-view-btn" class="btn btn-outline-danger btn-sm me-1">Clear History View</button>
+                    <button id="refresh-history-btn" class="btn btn-outline-secondary btn-sm">Refresh</button>
+                  </div>
                 </div>
 
                 <div id="history-error" class="alert alert-danger small d-none"></div>
@@ -270,7 +310,7 @@
                   No recorded logs found yet. Enter your temperature above and click to save permanently!
                 </p>
 
-                <div id="history-table-wrapper" class="table-responsive d-none" style="max-height: 250px; overflow-y: auto;">
+                <div id="history-table-wrapper" class="table-responsive d-none" style="max-height: 220px; overflow-y: auto;">
                   <table class="table table-striped table-bordered table-hover table-sm mb-0">
                     <thead class="table-light sticky-top">
                       <tr>
@@ -307,6 +347,9 @@
       getFirestore, 
       collection, 
       addDoc, 
+      doc, 
+      setDoc, 
+      getDoc, 
       query, 
       where, 
       orderBy, 
@@ -349,6 +392,16 @@
     const liveDateEl = document.getElementById('live-date');
     const liveTimeEl = document.getElementById('live-time');
 
+    const seminarianForm = document.getElementById('seminarian-form');
+    const infoName = document.getElementById('info-name');
+    const infoAge = document.getElementById('info-age');
+    const infoLevel = document.getElementById('info-level');
+    const infoAddress = document.getElementById('info-address');
+    const infoHeight = document.getElementById('info-height');
+    const infoWeight = document.getElementById('info-weight');
+    const infoSubmitBtn = document.getElementById('info-submit-btn');
+    const infoMessage = document.getElementById('info-message');
+
     const recordForm = document.getElementById('record-form');
     const temperatureInput = document.getElementById('temperature-input');
     const unitSelect = document.getElementById('unit-select');
@@ -358,6 +411,7 @@
     const statusPreview = document.getElementById('status-preview');
 
     const refreshHistoryBtn = document.getElementById('refresh-history-btn');
+    const clearViewBtn = document.getElementById('clear-view-btn');
     const historyError = document.getElementById('history-error');
     const historyLoading = document.getElementById('history-loading');
     const historyEmpty = document.getElementById('history-empty');
@@ -398,6 +452,12 @@
           userPhoto.classList.add('d-none');
         }
 
+        // Prefill display name if available
+        if (!infoName.value && user.displayName) {
+          infoName.value = user.displayName;
+        }
+
+        loadSeminarianInfo(user.uid);
         fetchUserHistory(user.uid);
       } else {
         loginView.classList.remove('d-none');
@@ -423,6 +483,54 @@
     logoutBtn.addEventListener('click', async () => {
       await signOut(auth);
     });
+
+    // Save Seminarian Info
+    seminarianForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentUser) return;
+
+      infoSubmitBtn.disabled = true;
+      infoSubmitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+      infoMessage.classList.add('d-none');
+
+      try {
+        await setDoc(doc(db, "seminarian_profiles", currentUser.uid), {
+          userId: currentUser.uid,
+          name: infoName.value,
+          age: infoAge.value,
+          level: infoLevel.value,
+          address: infoAddress.value,
+          height: infoHeight.value,
+          weight: infoWeight.value,
+          updatedAt: serverTimestamp()
+        });
+        infoMessage.classList.remove('d-none');
+        setTimeout(() => infoMessage.classList.add('d-none'), 3000);
+      } catch (error) {
+        alert(`Error saving info: ${error.message}`);
+      } finally {
+        infoSubmitBtn.innerHTML = 'Enter Info';
+        infoSubmitBtn.disabled = false;
+      }
+    });
+
+    // Load Seminarian Info from Firestore
+    async function loadSeminarianInfo(uid) {
+      try {
+        const docSnap = await getDoc(doc(db, "seminarian_profiles", uid));
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          infoName.value = data.name || '';
+          infoAge.value = data.age || '';
+          infoLevel.value = data.level || '';
+          infoAddress.value = data.address || '';
+          infoHeight.value = data.height || '';
+          infoWeight.value = data.weight || '';
+        }
+      } catch (e) {
+        console.error("Error loading profile:", e);
+      }
+    }
 
     // Temperature Calculation Helpers
     function getTempInCelsius() {
@@ -468,35 +576,44 @@
       saveMessage.classList.add('d-none');
     });
 
-    // Save Record to Firestore permanently on "Click"
+    // Save Record to Firestore permanently on fast "Click"
     recordForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const status = getFeverStatus();
       if (!temperatureInput.value || !status || !currentUser) return;
 
       saveBtn.disabled = true;
-      saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
       saveMessage.classList.add('d-none');
 
       try {
+        // Immediate local reset for snappy performance
+        const recordedVal = temperatureInput.value;
+        const recordedUnit = unitSelect.value;
+        const recordedStatus = status.label;
+        temperatureInput.value = '';
+        updatePreview();
+
+        saveMessage.className = 'alert alert-success py-1 small text-center';
+        saveMessage.textContent = 'Recorded permanently!';
+        saveMessage.classList.remove('d-none');
+        setTimeout(() => saveMessage.classList.add('d-none'), 2500);
+
+        // Background write to permanent database
         await addDoc(collection(db, "temperature_records"), {
           userId: currentUser.uid,
           userEmail: currentUser.email || 'No Email',
-          temperature: parseFloat(temperatureInput.value),
-          unit: unitSelect.value,
-          tempC: getTempInCelsius(),
-          status: status.label,
+          temperature: parseFloat(recordedVal),
+          unit: recordedUnit,
+          tempC: recordedUnit === 'F' ? ((recordedVal - 32) * 5) / 9 : parseFloat(recordedVal),
+          status: recordedStatus,
           createdAt: serverTimestamp()
         });
 
-        saveMessage.className = 'alert alert-success py-2 text-center';
-        saveMessage.textContent = 'Recorded permanently!';
-        temperatureInput.value = '';
-        updatePreview();
         fetchUserHistory(currentUser.uid);
       } catch (error) {
-        saveMessage.className = 'alert alert-danger py-2 text-center';
-        saveMessage.textContent = `Database Error: ${error.message}`;
+        saveMessage.className = 'alert alert-danger py-1 small text-center';
+        saveMessage.textContent = `Error: ${error.message}`;
+        saveMessage.classList.remove('d-none');
       } finally {
         saveBtn.innerHTML = 'Click';
         updatePreview();
@@ -573,6 +690,13 @@
 
     refreshHistoryBtn.addEventListener('click', () => {
       if (currentUser) fetchUserHistory(currentUser.uid);
+    });
+
+    // Clear View Button (clears screen view only, records remain permanent in database)
+    clearViewBtn.addEventListener('click', () => {
+      historyTbody.innerHTML = '';
+      historyTableWrapper.classList.add('d-none');
+      historyEmpty.classList.remove('d-none');
     });
   </script>
 </body>
