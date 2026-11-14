@@ -234,7 +234,7 @@
                       </div>
                       <div class="col-2">
                         <button type="submit" id="save-btn" class="btn btn-success w-100" disabled>
-                          Save
+                          Click
                         </button>
                       </div>
                     </div>
@@ -484,7 +484,7 @@
         saveMessage.className = 'alert alert-danger py-2 text-center';
         saveMessage.textContent = `Database Error: ${error.message}`;
       } finally {
-        saveBtn.innerHTML = 'Save';
+        saveBtn.innerHTML = 'Click';
         updatePreview();
       }
     });
