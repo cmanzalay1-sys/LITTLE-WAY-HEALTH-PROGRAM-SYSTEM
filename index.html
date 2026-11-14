@@ -256,7 +256,7 @@
 
                 <!-- Past Temperature History Section -->
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                  <h6 class="fw-bold mb-0 text-secondary">My Past Temperature Records</h6>
+                  <h6 class="fw-bold mb-0 text-secondary">My Permanent Temperature Records</h6>
                   <button id="refresh-history-btn" class="btn btn-outline-secondary btn-sm">Refresh</button>
                 </div>
 
@@ -267,7 +267,7 @@
                 </div>
 
                 <p id="history-empty" class="text-muted small text-center py-2 d-none">
-                  No recorded logs found yet. Enter your temperature above to start tracking!
+                  No recorded logs found yet. Enter your temperature above and click to save permanently!
                 </p>
 
                 <div id="history-table-wrapper" class="table-responsive d-none" style="max-height: 250px; overflow-y: auto;">
@@ -460,7 +460,7 @@
     temperatureInput.addEventListener('input', updatePreview);
     unitSelect.addEventListener('change', updatePreview);
 
-    // Stop Button Functionality (Clears input and preview)
+    // Stop Button Functionality
     stopBtn.addEventListener('click', () => {
       temperatureInput.value = '';
       statusPreview.classList.add('d-none');
@@ -468,7 +468,7 @@
       saveMessage.classList.add('d-none');
     });
 
-    // Save Record to Firestore on "Click"
+    // Save Record to Firestore permanently on "Click"
     recordForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const status = getFeverStatus();
@@ -490,7 +490,7 @@
         });
 
         saveMessage.className = 'alert alert-success py-2 text-center';
-        saveMessage.textContent = 'Recorded successfully!';
+        saveMessage.textContent = 'Recorded permanently!';
         temperatureInput.value = '';
         updatePreview();
         fetchUserHistory(currentUser.uid);
@@ -526,7 +526,7 @@
       }
     }
 
-    // Fetch User History from Firestore
+    // Fetch User Permanent History from Firestore
     async function fetchUserHistory(uid) {
       historyLoading.classList.remove('d-none');
       historyEmpty.classList.add('d-none');
