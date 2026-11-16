@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LWCS Health Monitoring & Voice Call Portal</title>
+  <title>LWCS Health Monitoring & Video Call Portal</title>
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <!-- PeerJS CDN for WebRTC Voice Calling -->
+  <!-- PeerJS CDN for WebRTC Video/Voice Calling -->
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body class="bg-light">
@@ -18,18 +18,27 @@
     </div>
   </div>
 
-  <!-- INCOMING / ACTIVE VOICE CALL MODAL -->
-  <div class="modal fade" id="voiceCallModal" data-bs-backdrop="static" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content text-center p-4">
-        <h4 id="call-status-title" class="fw-bold mb-2">Voice Call</h4>
-        <p id="call-status-subtitle" class="text-muted small mb-4">Connecting...</p>
+  <!-- VIDEO CALL MODAL -->
+  <div class="modal fade" id="videoCallModal" data-bs-backdrop="static" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content text-center p-3 bg-dark text-white">
+        <h5 id="call-status-title" class="fw-bold mb-2">Video Call</h5>
+        <p id="call-status-subtitle" class="text-light small mb-3">Connecting...</p>
         
-        <!-- Hidden Audio Element for WebRTC Stream -->
-        <audio id="remote-audio" autoplay></audio>
+        <!-- Video Containers -->
+        <div class="row g-2 mb-3 justify-content-center">
+          <div class="col-md-6 position-relative">
+            <span class="position-absolute top-0 start-0 badge bg-secondary m-2">Remote Video</span>
+            <video id="remote-video" autoplay playsinline class="w-100 rounded bg-black" style="max-height: 350px; object-fit: cover;"></video>
+          </div>
+          <div class="col-md-6 position-relative">
+            <span class="position-absolute top-0 start-0 badge bg-secondary m-2">My Camera</span>
+            <video id="local-video" autoplay playsinline muted class="w-100 rounded bg-black" style="max-height: 350px; object-fit: cover;"></video>
+          </div>
+        </div>
 
         <div class="d-flex justify-content-center gap-3">
-          <button id="answer-call-btn" class="btn btn-success px-4 d-none">Answer</button>
+          <button id="answer-call-btn" class="btn btn-success px-4 d-none">Answer Video Call</button>
           <button id="end-call-btn" class="btn btn-danger px-4">End Call</button>
         </div>
       </div>
@@ -107,7 +116,7 @@
               <line x1="104.5" y1="84" x2="95.5" y2="92.5" stroke="#d4af37" stroke-width="1.5" />
             </g>
           </svg>
-          <h4 class="mb-0" id="portal-title">Health Monitoring & Voice Call Portal</h4>
+          <h4 class="mb-0" id="portal-title">Health Monitoring & Video Call Portal</h4>
         </div>
 
         <!-- User Info & Logout -->
@@ -159,7 +168,7 @@
               </div>
             </div>
 
-            <!-- RIGHT COLUMN: Seminarian Auto-Saving Info, Temperature Form & History Log -->
+            <!-- RIGHT COLUMN -->
             <div class="col-lg-8">
               <div class="card border-0 shadow-sm p-3 mb-3">
                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -270,8 +279,8 @@
         <div id="admin-dashboard-view" class="d-none">
           <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-              <h3 class="fw-bold text-dark mb-0">Admin Tracing & Voice Call Dashboard</h3>
-              <p class="text-muted small mb-0">Monitor health logs and initiate direct voice calls with seminarians.</p>
+              <h3 class="fw-bold text-dark mb-0">Admin Tracing & Video Call Dashboard</h3>
+              <p class="text-muted small mb-0">Monitor health logs and initiate direct video calls with seminarians.</p>
             </div>
             <button id="admin-refresh-btn" class="btn btn-primary btn-sm">Refresh All Data</button>
           </div>
@@ -302,7 +311,7 @@
                       <th>Formation Level</th>
                       <th>Address</th>
                       <th>Email / ID</th>
-                      <th>Voice Call</th>
+                      <th>Video Call</th>
                     </tr>
                   </thead>
                   <tbody id="admin-profiles-tbody"></tbody>
@@ -441,15 +450,15 @@
     const adminLogsTable = document.getElementById('admin-logs-table');
     const adminLogsTbody = document.getElementById('admin-logs-tbody');
 
-    // Call Modal Elements
-    const voiceCallModal = new bootstrap.Modal(document.getElementById('voiceCallModal'));
+    // Video Call Modal Elements
+    const videoCallModal = new bootstrap.Modal(document.getElementById('videoCallModal'));
     const callStatusTitle = document.getElementById('call-status-title');
     const callStatusSubtitle = document.getElementById('call-status-subtitle');
     const answerCallBtn = document.getElementById('answer-call-btn');
     const endCallBtn = document.getElementById('end-call-btn');
-    const remoteAudio = document.getElementById('remote-audio');
+    const localVideo = document.getElementById('local-video');
+    const remoteVideo = document.getElementById('remote-video');
 
-    // Live Clock
     function updateClock() {
       const now = new Date();
       liveDateEl.textContent = now.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
@@ -462,7 +471,6 @@
       inappWarning.classList.remove('d-none');
     }
 
-    // Auth State Listener
     onAuthStateChanged(auth, async (user) => {
       currentUser = user;
       loadingScreen.classList.add('d-none');
@@ -481,7 +489,6 @@
           userPhoto.classList.add('d-none');
         }
 
-        // Initialize PeerJS Connection using User UID as Peer ID
         initPeer(user.uid);
 
         if (ADMIN_EMAILS.includes(user.email)) {
@@ -506,20 +513,18 @@
       }
     });
 
-    // Initialize PeerJS
     function initPeer(userId) {
-      peer = new Peer(userId); // Uses Firebase UID as unique calling identifier
+      peer = new Peer(userId);
 
       peer.on('call', async (call) => {
         activeCall = call;
         answerCallBtn.classList.remove('d-none');
-        callStatusTitle.textContent = "Incoming Call";
+        callStatusTitle.textContent = "Incoming Video Call";
         callStatusSubtitle.textContent = "Admin is calling you...";
-        voiceCallModal.show();
+        videoCallModal.show();
       });
     }
 
-    // Google Login
     googleLoginBtn.addEventListener('click', async () => {
       authError.classList.add('d-none');
       try {
@@ -535,55 +540,58 @@
       await signOut(auth);
     });
 
-    // ADMIN CALL INITIATION
-    window.startVoiceCall = async function(seminarianUid, seminarianName) {
+    // ADMIN VIDEO CALL INITIATION
+    window.startVideoCall = async function(seminarianUid, seminarianName) {
       callStatusTitle.textContent = `Calling ${seminarianName}...`;
       callStatusSubtitle.textContent = "Ringing...";
       answerCallBtn.classList.add('d-none');
-      voiceCallModal.show();
+      videoCallModal.show();
 
       try {
-        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+        localVideo.srcObject = localStream;
+
         const call = peer.call(seminarianUid, localStream);
         activeCall = call;
 
         call.on('stream', (remoteStream) => {
-          remoteAudio.srcObject = remoteStream;
+          remoteVideo.srcObject = remoteStream;
           callStatusTitle.textContent = "Connected";
-          callStatusSubtitle.textContent = `Voice call with ${seminarianName}`;
+          callStatusSubtitle.textContent = `Video call with ${seminarianName}`;
         });
 
         call.on('close', () => {
           closeCallModal();
         });
       } catch (err) {
-        alert("Microphone access denied or unavailable.");
-        voiceCallModal.hide();
+        alert("Camera and microphone permission denied or unavailable.");
+        videoCallModal.hide();
       }
     };
 
-    // SEMINARIAN ANSWER CALL
+    // SEMINARIAN ANSWER VIDEO CALL
     answerCallBtn.addEventListener('click', async () => {
       try {
-        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+        localVideo.srcObject = localStream;
+
         activeCall.answer(localStream);
         answerCallBtn.classList.add('d-none');
         callStatusTitle.textContent = "Connected";
-        callStatusSubtitle.textContent = "Voice call active";
+        callStatusSubtitle.textContent = "Video call active";
 
         activeCall.on('stream', (remoteStream) => {
-          remoteAudio.srcObject = remoteStream;
+          remoteVideo.srcObject = remoteStream;
         });
 
         activeCall.on('close', () => {
           closeCallModal();
         });
       } catch (err) {
-        alert("Microphone permission required to answer call.");
+        alert("Camera and microphone permission required to answer call.");
       }
     });
 
-    // END CALL BUTTON
     endCallBtn.addEventListener('click', () => {
       if (activeCall) activeCall.close();
       closeCallModal();
@@ -593,8 +601,10 @@
       if (localStream) {
         localStream.getTracks().forEach(track => track.stop());
       }
-      voiceCallModal.hide();
-      callStatusTitle.textContent = "Voice Call";
+      localVideo.srcObject = null;
+      remoteVideo.srcObject = null;
+      videoCallModal.hide();
+      callStatusTitle.textContent = "Video Call";
       callStatusSubtitle.textContent = "Connecting...";
       answerCallBtn.classList.add('d-none');
     }
@@ -791,7 +801,7 @@
       historyEmpty.classList.remove('d-none');
     });
 
-    // ADMIN DATA & CALL BUTTON RENDERING
+    // ADMIN DATA & VIDEO CALL BUTTON RENDERING
     async function loadAdminData() {
       adminProfilesLoading.classList.remove('d-none');
       adminProfilesTable.classList.add('d-none');
@@ -808,8 +818,8 @@
               <td>${p.address || 'N/A'}</td>
               <td>${p.email || 'N/A'}</td>
               <td>
-                <button class="btn btn-outline-success btn-sm" onclick="startVoiceCall('${p.userId}', '${p.name || 'Seminarian'}')">
-                  📞 Call
+                <button class="btn btn-outline-primary btn-sm" onclick="startVideoCall('${p.userId}', '${p.name || 'Seminarian'}')">
+                  📹 Video Call
                 </button>
               </td>
             </tr>
@@ -845,7 +855,7 @@
               </tr>
             `;
           }).join('');
-          adminLogsTable.classList.print ? null : adminLogsTable.classList.remove('d-none');
+          adminLogsTable.classList.remove('d-none');
         } else {
           adminLogsEmpty.classList.remove('d-none');
         }
