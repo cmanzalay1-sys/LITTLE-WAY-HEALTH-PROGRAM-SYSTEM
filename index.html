@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LWCS Health Monitoring & Video Call Portal</title>
+  <title>LWCS Health Monitoring, Video Call & Chat Portal</title>
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <!-- PeerJS CDN for WebRTC Video/Voice Calling -->
@@ -25,7 +25,6 @@
         <h5 id="call-status-title" class="fw-bold mb-2">Video Call</h5>
         <p id="call-status-subtitle" class="text-light small mb-3">Connecting...</p>
         
-        <!-- Video Containers -->
         <div class="row g-2 mb-3 justify-content-center">
           <div class="col-md-6 position-relative">
             <span class="position-absolute top-0 start-0 badge bg-secondary m-2">Remote Video</span>
@@ -116,7 +115,7 @@
               <line x1="104.5" y1="84" x2="95.5" y2="92.5" stroke="#d4af37" stroke-width="1.5" />
             </g>
           </svg>
-          <h4 class="mb-0" id="portal-title">Health Monitoring & Video Call Portal</h4>
+          <h4 class="mb-0" id="portal-title">Health Monitoring & Telemedicine Portal</h4>
         </div>
 
         <!-- User Info & Logout -->
@@ -156,20 +155,31 @@
         <div id="dashboard-view" class="d-none">
           <div class="row g-4">
             
-            <!-- LEFT COLUMN: Live Clock & Video Call Admin Button -->
+            <!-- LEFT COLUMN: Live Clock, Video Call & Chat -->
             <div class="col-lg-4">
-              <div class="card bg-light border-0 h-100 shadow-sm">
-                <div class="card-body text-center d-flex flex-column justify-content-center py-4">
-                  <h6 class="text-muted text-uppercase small fw-bold mb-3">Current Date & Time</h6>
-                  <div id="live-date" class="fw-semibold text-secondary mb-1" style="font-size: 1.1rem;"></div>
-                  <div id="live-time" class="fw-bold text-primary display-6 mb-3"></div>
+              <div class="card bg-light border-0 h-100 shadow-sm mb-3">
+                <div class="card-body text-center d-flex flex-column justify-content-center py-3">
+                  <h6 class="text-muted text-uppercase small fw-bold mb-2">Current Date & Time</h6>
+                  <div id="live-date" class="fw-semibold text-secondary mb-1" style="font-size: 0.95rem;"></div>
+                  <div id="live-time" class="fw-bold text-primary fs-4 mb-2"></div>
                   
-                  <hr />
-                  <p class="text-muted small mb-2">Need medical assistance?</p>
+                  <hr class="my-2" />
                   <button id="call-admin-btn" class="btn btn-primary btn-sm w-100 fw-bold">
                     📹 Video Call Admin
                   </button>
                 </div>
+              </div>
+
+              <!-- Seminarian Chat Box -->
+              <div class="card border-0 shadow-sm p-3">
+                <h6 class="fw-bold text-primary mb-2">Chat with Admin</h6>
+                <div id="chat-messages-container" class="border rounded p-2 mb-2 bg-white" style="height: 180px; overflow-y: auto; font-size: 0.85rem;">
+                  <p class="text-muted text-center small my-auto">No messages yet.</p>
+                </div>
+                <form id="chat-form" class="input-group input-group-sm">
+                  <input type="text" id="chat-input" class="form-control" placeholder="Type a message..." required />
+                  <button type="submit" class="btn btn-primary">Send</button>
+                </form>
               </div>
             </div>
 
@@ -284,8 +294,8 @@
         <div id="admin-dashboard-view" class="d-none">
           <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-              <h3 class="fw-bold text-dark mb-0">Admin Tracing & Video Call Dashboard</h3>
-              <p class="text-muted small mb-0">Monitor health logs and handle video calls from seminarians.</p>
+              <h3 class="fw-bold text-dark mb-0">Admin Tracing & Telemedicine Dashboard</h3>
+              <p class="text-muted small mb-0">Monitor health logs, video call, and chat directly with seminarians.</p>
             </div>
             <button id="admin-refresh-btn" class="btn btn-primary btn-sm">Refresh All Data</button>
           </div>
@@ -297,6 +307,9 @@
             </li>
             <li class="nav-item" role="presentation">
               <button class="nav-link" id="logs-tab" data-bs-toggle="tab" data-bs-target="#logs-pane" type="button" role="tab">All Temperature Logs</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" id="admin-chat-tab" data-bs-toggle="tab" data-bs-target="#admin-chat-pane" type="button" role="tab">Live Chat Center</button>
             </li>
           </ul>
 
@@ -316,7 +329,7 @@
                       <th>Formation Level</th>
                       <th>Address</th>
                       <th>Email / ID</th>
-                      <th>Video Call</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody id="admin-profiles-tbody"></tbody>
@@ -342,6 +355,28 @@
                   </thead>
                   <tbody id="admin-logs-tbody"></tbody>
                 </table>
+              </div>
+            </div>
+
+            <!-- Admin Chat Pane -->
+            <div class="tab-pane fade" id="admin-chat-pane" role="tabpanel">
+              <div class="row">
+                <div class="col-md-4 border-end">
+                  <h6 class="fw-bold mb-3">Select Seminarian</h6>
+                  <div id="admin-chat-user-list" class="list-group" style="max-height: 350px; overflow-y: auto;">
+                    <p class="text-muted small">Loading seminarians...</p>
+                  </div>
+                </div>
+                <div class="col-md-8">
+                  <h6 id="active-chat-title" class="fw-bold mb-3 text-primary">Select a seminarian to start chatting</h6>
+                  <div id="admin-chat-messages" class="border rounded p-3 mb-3 bg-white" style="height: 250px; overflow-y: auto;">
+                    <p class="text-muted text-center my-auto small">No conversation selected.</p>
+                  </div>
+                  <form id="admin-chat-form" class="input-group d-none">
+                    <input type="text" id="admin-chat-input" class="form-control" placeholder="Type reply..." required />
+                    <button type="submit" class="btn btn-primary">Send</button>
+                  </form>
+                </div>
               </div>
             </div>
           </div>
@@ -375,6 +410,7 @@
       where, 
       orderBy, 
       getDocs, 
+      onSnapshot,
       serverTimestamp 
     } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
@@ -400,13 +436,14 @@
       "carlomanzalay20@gmail.com"
     ];
 
-    // Primary Admin Peer ID used for patient-to-admin calls
     const PRIMARY_ADMIN_UID = "lwcs_main_admin_portal";
 
     let currentUser = null;
     let peer = null;
     let activeCall = null;
     let localStream = null;
+    let chatUnsubscribe = null;
+    let selectedChatUserId = null;
 
     // DOM Elements
     const loadingScreen = document.getElementById('loading-screen');
@@ -459,6 +496,18 @@
     const adminLogsTable = document.getElementById('admin-logs-table');
     const adminLogsTbody = document.getElementById('admin-logs-tbody');
 
+    // Chat Elements (Seminarian)
+    const chatMessagesContainer = document.getElementById('chat-messages-container');
+    const chatForm = document.getElementById('chat-form');
+    const chatInput = document.getElementById('chat-input');
+
+    // Chat Elements (Admin)
+    const adminChatUserList = document.getElementById('admin-chat-user-list');
+    const activeChatTitle = document.getElementById('active-chat-title');
+    const adminChatMessages = document.getElementById('admin-chat-messages');
+    const adminChatForm = document.getElementById('admin-chat-form');
+    const adminChatInput = document.getElementById('admin-chat-input');
+
     // Video Call Modal Elements
     const videoCallModal = new bootstrap.Modal(document.getElementById('videoCallModal'));
     const callStatusTitle = document.getElementById('call-status-title');
@@ -498,7 +547,6 @@
           userPhoto.classList.add('d-none');
         }
 
-        // If user is admin, register with PRIMARY_ADMIN_UID so patients can call them. Otherwise use user.uid
         const peerId = ADMIN_EMAILS.includes(user.email) ? PRIMARY_ADMIN_UID : user.uid;
         initPeer(peerId);
 
@@ -514,6 +562,7 @@
           if (!infoName.value && user.displayName) infoName.value = user.displayName;
           loadSeminarianInfo(user.uid);
           fetchUserHistory(user.uid);
+          listenForSeminarianChats(user.uid);
         }
       } else {
         loginView.classList.add('d-none');
@@ -521,12 +570,12 @@
         adminDashboardView.classList.add('d-none');
         userHeaderControls.classList.add('d-none');
         if (peer) peer.destroy();
+        if (chatUnsubscribe) chatUnsubscribe();
       }
     });
 
     function initPeer(peerId) {
       peer = new Peer(peerId);
-
       peer.on('call', async (call) => {
         activeCall = call;
         answerCallBtn.classList.remove('d-none');
@@ -548,10 +597,87 @@
 
     logoutBtn.addEventListener('click', async () => {
       if (peer) peer.destroy();
+      if (chatUnsubscribe) chatUnsubscribe();
       await signOut(auth);
     });
 
-    // SEMINARIAN CALLING ADMIN
+    // REAL-TIME CHAT: Seminarian view
+    function listenForSeminarianChats(uid) {
+      if (chatUnsubscribe) chatUnsubscribe();
+      const q = query(collection(db, "chat_messages"), where("chatId", "==", uid), orderBy("createdAt", "asc"));
+      chatUnsubscribe = onSnapshot(q, (snapshot) => {
+        const msgs = snapshot.docs.map(doc => doc.data());
+        if (msgs.length === 0) {
+          chatMessagesContainer.innerHTML = `<p class="text-muted text-center small my-auto">No messages yet. Send a message to start chatting with Admin.</p>`;
+          return;
+        }
+        chatMessagesContainer.innerHTML = msgs.map(m => `
+          <div class="mb-2 text-${m.sender === uid ? 'end' : 'start'}">
+            <span class="badge bg-${m.sender === uid ? 'primary' : 'secondary'} text-wrap p-2 text-start" style="max-width: 80%;">
+              <strong>${m.senderName}:</strong> ${m.text}
+            </span>
+          </div>
+        `).join('');
+        chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+      });
+    }
+
+    chatForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!chatInput.value.trim() || !currentUser) return;
+      const text = chatInput.value.trim();
+      chatInput.value = '';
+
+      await addDoc(collection(db, "chat_messages"), {
+        chatId: currentUser.uid,
+        sender: currentUser.uid,
+        senderName: infoName.value || currentUser.displayName || 'Seminarian',
+        text: text,
+        createdAt: serverTimestamp()
+      });
+    });
+
+    // REAL-TIME CHAT: Admin view
+    window.selectChatUser = function(userId, userNameStr) {
+      selectedChatUserId = userId;
+      activeChatTitle.textContent = `Chat with ${userNameStr}`;
+      adminChatForm.classList.remove('d-none');
+
+      if (chatUnsubscribe) chatUnsubscribe();
+      const q = query(collection(db, "chat_messages"), where("chatId", "==", userId), orderBy("createdAt", "asc"));
+      chatUnsubscribe = onSnapshot(q, (snapshot) => {
+        const msgs = snapshot.docs.map(doc => doc.data());
+        if (msgs.length === 0) {
+          adminChatMessages.innerHTML = `<p class="text-muted text-center small my-auto">No messages with this seminarian yet.</p>`;
+          return;
+        }
+        adminChatMessages.innerHTML = msgs.map(m => `
+          <div class="mb-2 text-${m.sender === currentUser.uid ? 'end' : 'start'}">
+            <span class="badge bg-${m.sender === currentUser.uid ? 'dark' : 'primary'} text-wrap p-2 text-start" style="max-width: 80%;">
+              <strong>${m.senderName}:</strong> ${m.text}
+            </span>
+          </div>
+        `).join('');
+        adminChatMessages.scrollTop = adminChatMessages.scrollHeight;
+      });
+    };
+
+    adminChatForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!adminChatInput.value.trim() || !selectedChatUserId || !currentUser) return;
+      const text = adminChatInput.value.trim();
+      adminChatInput.value = '';
+
+      await addDoc(collection(db, "chat_messages"), {
+        chatId: selectedChatUserId,
+        sender: currentUser.uid,
+        senderName: 'Admin',
+        text: text,
+        createdAt: serverTimestamp()
+      });
+    });
+
+    // VIDEO CALLING LOGIC
     callAdminBtn.addEventListener('click', async () => {
       callStatusTitle.textContent = "Calling Admin...";
       callStatusSubtitle.textContent = "Ringing...";
@@ -571,16 +697,13 @@
           callStatusSubtitle.textContent = "Video call with Admin";
         });
 
-        call.on('close', () => {
-          closeCallModal();
-        });
+        call.on('close', () => { closeCallModal(); });
       } catch (err) {
-        alert("Camera and microphone permission denied or unavailable.");
+        alert("Camera and microphone permission denied.");
         videoCallModal.hide();
       }
     });
 
-    // ADMIN CALLING SEMINARIAN
     window.startVideoCall = async function(seminarianUid, seminarianName) {
       callStatusTitle.textContent = `Calling ${seminarianName}...`;
       callStatusSubtitle.textContent = "Ringing...";
@@ -600,16 +723,13 @@
           callStatusSubtitle.textContent = `Video call with ${seminarianName}`;
         });
 
-        call.on('close', () => {
-          closeCallModal();
-        });
+        call.on('close', () => { closeCallModal(); });
       } catch (err) {
-        alert("Camera and microphone permission denied or unavailable.");
+        alert("Camera and microphone permission denied.");
         videoCallModal.hide();
       }
     };
 
-    // ANSWER VIDEO CALL
     answerCallBtn.addEventListener('click', async () => {
       try {
         localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
@@ -624,11 +744,9 @@
           remoteVideo.srcObject = remoteStream;
         });
 
-        activeCall.on('close', () => {
-          closeCallModal();
-        });
+        activeCall.on('close', () => { closeCallModal(); });
       } catch (err) {
-        alert("Camera and microphone permission required to answer call.");
+        alert("Camera and microphone required.");
       }
     });
 
@@ -638,9 +756,7 @@
     });
 
     function closeCallModal() {
-      if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-      }
+      if (localStream) localStream.getTracks().forEach(track => track.stop());
       localVideo.srcObject = null;
       remoteVideo.srcObject = null;
       videoCallModal.hide();
@@ -672,7 +788,6 @@
           autoSaveIndicator.className = "small text-success fw-semibold fst-italic";
         } catch (error) {
           autoSaveIndicator.textContent = "Save failed";
-          autoSaveIndicator.className = "small text-danger fw-semibold fst-italic";
         }
       }, 500);
     }
@@ -691,9 +806,7 @@
           infoLevel.value = data.level || '';
           infoAddress.value = data.address || '';
         }
-      } catch (e) {
-        console.error("Error loading profile:", e);
-      }
+      } catch (e) { console.error(e); }
     }
 
     // TEMPERATURE RECORDING
@@ -771,7 +884,6 @@
       } catch (error) {
         saveMessage.className = 'alert alert-danger py-1 small text-center';
         saveMessage.textContent = `Error: ${error.message}`;
-        saveMessage.classList.remove('d-none');
       } finally {
         saveBtn.innerHTML = 'Click';
         updatePreview();
@@ -841,7 +953,7 @@
       historyEmpty.classList.remove('d-none');
     });
 
-    // ADMIN DATA & VIDEO CALL BUTTON RENDERING
+    // ADMIN DATA LOADING & CHAT USER LIST
     async function loadAdminData() {
       adminProfilesLoading.classList.remove('d-none');
       adminProfilesTable.classList.add('d-none');
@@ -858,15 +970,27 @@
               <td>${p.address || 'N/A'}</td>
               <td>${p.email || 'N/A'}</td>
               <td>
-                <button class="btn btn-outline-primary btn-sm" onclick="startVideoCall('${p.userId}', '${p.name || 'Seminarian'}')">
-                  📹 Video Call
+                <button class="btn btn-outline-primary btn-sm me-1" onclick="startVideoCall('${p.userId}', '${p.name || 'Seminarian'}')">
+                  📹 Call
+                </button>
+                <button class="btn btn-outline-success btn-sm" data-bs-toggle="tab" data-bs-target="#admin-chat-pane" onclick="selectChatUser('${p.userId}', '${p.name || 'Seminarian'}')">
+                  💬 Chat
                 </button>
               </td>
             </tr>
           `).join('');
           adminProfilesTable.classList.remove('d-none');
+
+          // Populate Admin Chat List Sidebar
+          adminChatUserList.innerHTML = profiles.map(p => `
+            <a href="#" class="list-group-item list-group-item-action border-0 rounded mb-1" onclick="selectChatUser('${p.userId}', '${p.name || 'Seminarian'}')">
+              <div class="fw-bold">${p.name || 'Seminarian'}</div>
+              <small class="text-muted">${p.level || ''}</small>
+            </a>
+          `).join('');
         } else {
           adminProfilesEmpty.classList.remove('d-none');
+          adminChatUserList.innerHTML = `<p class="text-muted small">No seminarians found.</p>`;
         }
       } catch (err) {
         console.error("Error loading profiles:", err);
@@ -897,7 +1021,7 @@
           }).join('');
           adminLogsTable.classList.remove('d-none');
         } else {
-          adminLogsEmpty.classList.add('d-none');
+          adminLogsEmpty.classList.remove('d-none');
         }
       } catch (err) {
         console.error("Error loading logs:", err);
