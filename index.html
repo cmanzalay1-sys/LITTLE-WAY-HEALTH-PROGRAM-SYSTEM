@@ -156,14 +156,19 @@
         <div id="dashboard-view" class="d-none">
           <div class="row g-4">
             
-            <!-- LEFT COLUMN: Live Clock & Date -->
+            <!-- LEFT COLUMN: Live Clock & Video Call Admin Button -->
             <div class="col-lg-4">
               <div class="card bg-light border-0 h-100 shadow-sm">
                 <div class="card-body text-center d-flex flex-column justify-content-center py-4">
                   <h6 class="text-muted text-uppercase small fw-bold mb-3">Current Date & Time</h6>
                   <div id="live-date" class="fw-semibold text-secondary mb-1" style="font-size: 1.1rem;"></div>
-                  <div id="live-time" class="fw-bold text-primary display-6 mb-2"></div>
-                  <p class="text-muted small mb-0">Seminary Health Tracker</p>
+                  <div id="live-time" class="fw-bold text-primary display-6 mb-3"></div>
+                  
+                  <hr />
+                  <p class="text-muted small mb-2">Need medical assistance?</p>
+                  <button id="call-admin-btn" class="btn btn-primary btn-sm w-100 fw-bold">
+                    📹 Video Call Admin
+                  </button>
                 </div>
               </div>
             </div>
@@ -280,7 +285,7 @@
           <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
               <h3 class="fw-bold text-dark mb-0">Admin Tracing & Video Call Dashboard</h3>
-              <p class="text-muted small mb-0">Monitor health logs and initiate direct video calls with seminarians.</p>
+              <p class="text-muted small mb-0">Monitor health logs and handle video calls from seminarians.</p>
             </div>
             <button id="admin-refresh-btn" class="btn btn-primary btn-sm">Refresh All Data</button>
           </div>
@@ -395,6 +400,9 @@
       "carlomanzalay20@gmail.com"
     ];
 
+    // Primary Admin Peer ID used for patient-to-admin calls
+    const PRIMARY_ADMIN_UID = "lwcs_main_admin_portal";
+
     let currentUser = null;
     let peer = null;
     let activeCall = null;
@@ -417,6 +425,7 @@
 
     const liveDateEl = document.getElementById('live-date');
     const liveTimeEl = document.getElementById('live-time');
+    const callAdminBtn = document.getElementById('call-admin-btn');
 
     const infoName = document.getElementById('info-name');
     const infoAge = document.getElementById('info-age');
@@ -489,7 +498,9 @@
           userPhoto.classList.add('d-none');
         }
 
-        initPeer(user.uid);
+        // If user is admin, register with PRIMARY_ADMIN_UID so patients can call them. Otherwise use user.uid
+        const peerId = ADMIN_EMAILS.includes(user.email) ? PRIMARY_ADMIN_UID : user.uid;
+        initPeer(peerId);
 
         if (ADMIN_EMAILS.includes(user.email)) {
           portalTitle.textContent = "Admin Tracing Portal";
@@ -513,14 +524,14 @@
       }
     });
 
-    function initPeer(userId) {
-      peer = new Peer(userId);
+    function initPeer(peerId) {
+      peer = new Peer(peerId);
 
       peer.on('call', async (call) => {
         activeCall = call;
         answerCallBtn.classList.remove('d-none');
         callStatusTitle.textContent = "Incoming Video Call";
-        callStatusSubtitle.textContent = "Admin is calling you...";
+        callStatusSubtitle.textContent = "Incoming call request...";
         videoCallModal.show();
       });
     }
@@ -531,7 +542,7 @@
         await signInWithPopup(auth, googleProvider);
       } catch (error) {
         authError.textContent = `${error.message} — Add this exact domain to Firebase Authorized Domains: ${window.location.hostname}`;
-        authError.classList.remove('d-none');
+        authError.classList.add('d-none');
       }
     });
 
@@ -540,7 +551,36 @@
       await signOut(auth);
     });
 
-    // ADMIN VIDEO CALL INITIATION
+    // SEMINARIAN CALLING ADMIN
+    callAdminBtn.addEventListener('click', async () => {
+      callStatusTitle.textContent = "Calling Admin...";
+      callStatusSubtitle.textContent = "Ringing...";
+      answerCallBtn.classList.add('d-none');
+      videoCallModal.show();
+
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+        localVideo.srcObject = localStream;
+
+        const call = peer.call(PRIMARY_ADMIN_UID, localStream);
+        activeCall = call;
+
+        call.on('stream', (remoteStream) => {
+          remoteVideo.srcObject = remoteStream;
+          callStatusTitle.textContent = "Connected";
+          callStatusSubtitle.textContent = "Video call with Admin";
+        });
+
+        call.on('close', () => {
+          closeCallModal();
+        });
+      } catch (err) {
+        alert("Camera and microphone permission denied or unavailable.");
+        videoCallModal.hide();
+      }
+    });
+
+    // ADMIN CALLING SEMINARIAN
     window.startVideoCall = async function(seminarianUid, seminarianName) {
       callStatusTitle.textContent = `Calling ${seminarianName}...`;
       callStatusSubtitle.textContent = "Ringing...";
@@ -569,7 +609,7 @@
       }
     };
 
-    // SEMINARIAN ANSWER VIDEO CALL
+    // ANSWER VIDEO CALL
     answerCallBtn.addEventListener('click', async () => {
       try {
         localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
@@ -857,7 +897,7 @@
           }).join('');
           adminLogsTable.classList.remove('d-none');
         } else {
-          adminLogsEmpty.classList.remove('d-none');
+          adminLogsEmpty.classList.add('d-none');
         }
       } catch (err) {
         console.error("Error loading logs:", err);
