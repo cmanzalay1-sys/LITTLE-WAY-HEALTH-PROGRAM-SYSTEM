@@ -18,30 +18,31 @@
     </div>
   </div>
 
-  <!-- CALL MODAL (Supports both Audio & Video) -->
+  <!-- CALL & SCREEN SHARE MODAL -->
   <div class="modal fade" id="callModal" data-bs-backdrop="static" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-lg">
       <div class="modal-content text-center p-3 bg-dark text-white">
         <h5 id="call-status-title" class="fw-bold mb-2">Telemedicine Call</h5>
         <p id="call-status-subtitle" class="text-light small mb-3">Connecting...</p>
         
-        <!-- Video Containers (Hidden automatically during audio-only calls) -->
+        <!-- Video & Screen Share Containers -->
         <div id="video-container-wrapper" class="row g-2 mb-3 justify-content-center">
           <div class="col-md-6 position-relative">
-            <span class="position-absolute top-0 start-0 badge bg-secondary m-2">Remote Stream</span>
-            <video id="remote-video" autoplay playsinline class="w-100 rounded bg-black" style="max-height: 300px; object-fit: cover;"></video>
+            <span class="position-absolute top-0 start-0 badge bg-secondary m-2">Remote Stream / Presentation</span>
+            <video id="remote-video" autoplay playsinline class="w-100 rounded bg-black" style="max-height: 300px; object-fit: contain;"></video>
           </div>
           <div class="col-md-6 position-relative">
-            <span class="position-absolute top-0 start-0 badge bg-secondary m-2">My Camera</span>
-            <video id="local-video" autoplay playsinline muted class="w-100 rounded bg-black" style="max-height: 300px; object-fit: cover;"></video>
+            <span class="position-absolute top-0 start-0 badge bg-secondary m-2">My Camera / Shared Screen</span>
+            <video id="local-video" autoplay playsinline muted class="w-100 rounded bg-black" style="max-height: 300px; object-fit: contain;"></video>
           </div>
         </div>
 
         <!-- Hidden Audio Element for Voice Calls -->
         <audio id="remote-audio" autoplay></audio>
 
-        <div class="d-flex justify-content-center gap-3">
+        <div class="d-flex justify-content-center gap-3 flex-wrap">
           <button id="answer-call-btn" class="btn btn-success px-4 d-none">Answer Call</button>
+          <button id="share-screen-btn" class="btn btn-warning px-3 d-none">💻 Share Screen / PPT</button>
           <button id="end-call-btn" class="btn btn-danger px-4">End Call</button>
         </div>
       </div>
@@ -55,7 +56,6 @@
       <!-- Header -->
       <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
         <div class="d-flex align-items-center gap-2">
-          <!-- Small LWCS Seal -->
           <svg width="42" height="42" viewBox="0 0 200 200" style="display: inline-block;">
             <circle cx="100" cy="100" r="98" fill="#ffffff" />
             <circle cx="100" cy="100" r="95" fill="#fff02a" stroke="#111111" stroke-width="3" />
@@ -247,7 +247,7 @@
           <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
               <h3 class="fw-bold text-dark mb-0">Admin Tracing & Telemedicine Dashboard</h3>
-              <p class="text-muted small mb-0">Monitor health logs, audio/video call, and chat directly with seminarians.</p>
+              <p class="text-muted small mb-0">Monitor health logs, audio/video call, present slides, and chat directly with seminarians.</p>
             </div>
             <button id="admin-refresh-btn" class="btn btn-primary btn-sm">Refresh All Data</button>
           </div>
@@ -394,6 +394,7 @@
     let peer = null;
     let activeCall = null;
     let localStream = null;
+    let screenStream = null;
     let chatUnsubscribe = null;
     let selectedChatUserId = null;
 
@@ -465,6 +466,7 @@
     const callStatusTitle = document.getElementById('call-status-title');
     const callStatusSubtitle = document.getElementById('call-status-subtitle');
     const answerCallBtn = document.getElementById('answer-call-btn');
+    const shareScreenBtn = document.getElementById('share-screen-btn');
     const endCallBtn = document.getElementById('end-call-btn');
     const localVideo = document.getElementById('local-video');
     const remoteVideo = document.getElementById('remote-video');
@@ -533,6 +535,7 @@
       peer.on('call', async (call) => {
         activeCall = call;
         answerCallBtn.classList.remove('d-none');
+        shareScreenBtn.classList.remove('d-none');
         callStatusTitle.textContent = "Incoming Call";
         callStatusSubtitle.textContent = "Incoming call request...";
         callModal.show();
@@ -560,6 +563,7 @@
       callStatusTitle.textContent = `Calling ${targetName}...`;
       callStatusSubtitle.textContent = "Ringing...";
       answerCallBtn.classList.add('d-none');
+      shareScreenBtn.classList.remove('d-none');
 
       if (isVideo) {
         videoContainerWrapper.classList.remove('d-none');
@@ -592,38 +596,76 @@
       }
     }
 
-    // Seminarian calling Admin buttons
     callAdminAudio.addEventListener('click', () => startCall(PRIMARY_ADMIN_UID, "Admin", false));
     callAdminVideo.addEventListener('click', () => startCall(PRIMARY_ADMIN_UID, "Admin", true));
 
-    // Admin calling Seminarian buttons (triggered from table)
     window.startAudioCall = (uid, name) => startCall(uid, name, false);
     window.startVideoCall = (uid, name) => startCall(uid, name, true);
 
+    // SCREEN SHARE / PPT PRESENTATION LOGIC
+    shareScreenBtn.addEventListener('click', async () => {
+      try {
+        if (!screenStream) {
+          screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+          localVideo.srcObject = screenStream;
+          videoContainerWrapper.classList.remove('d-none');
+
+          // Replace track in active call so the other participant sees the presentation
+          const videoTrack = screenStream.getVideoTracks()[0];
+          if (activeCall && activeCall.peerConnection) {
+            const sender = activeCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+            if (sender) sender.replaceTrack(videoTrack);
+          }
+
+          shareScreenBtn.textContent = "🛑 Stop Sharing";
+          shareScreenBtn.classList.remove('btn-warning');
+          shareScreenBtn.classList.add('btn-danger');
+
+          videoTrack.onended = () => {
+            stopScreenShare();
+          };
+        } else {
+          stopScreenShare();
+        }
+      } catch (err) {
+        console.error("Error sharing screen:", err);
+      }
+    });
+
+    function stopScreenShare() {
+      if (screenStream) {
+        screenStream.getTracks().forEach(track => track.stop());
+        screenStream = null;
+      }
+      // Revert back to camera if available
+      if (localStream) {
+        localVideo.srcObject = localStream;
+        const videoTrack = localStream.getVideoTracks()[0];
+        if (activeCall && activeCall.peerConnection && videoTrack) {
+          const sender = activeCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
+          if (sender) sender.replaceTrack(videoTrack);
+        }
+      }
+      shareScreenBtn.textContent = "💻 Share Screen / PPT";
+      shareScreenBtn.classList.remove('btn-danger');
+      shareScreenBtn.classList.add('btn-warning');
+    }
+
     // ANSWER CALL
     answerCallBtn.addEventListener('click', async () => {
-      const isVideoCall = activeCall.metadata && activeCall.metadata.video === false ? false : true;
-      if (isVideoCall) {
-        videoContainerWrapper.classList.remove('d-none');
-      } else {
-        videoContainerWrapper.classList.add('d-none');
-      }
-
+      videoContainerWrapper.classList.remove('d-none');
       try {
-        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: isVideoCall });
-        if (isVideoCall) localVideo.srcObject = localStream;
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+        localVideo.srcObject = localStream;
 
         activeCall.answer(localStream);
         answerCallBtn.classList.add('d-none');
+        shareScreenBtn.classList.remove('d-none');
         callStatusTitle.textContent = "Connected";
         callStatusSubtitle.textContent = "Call active";
 
         activeCall.on('stream', (remoteStream) => {
-          if (isVideoCall) {
-            remoteVideo.srcObject = remoteStream;
-          } else {
-            remoteAudio.srcObject = remoteStream;
-          }
+          remoteVideo.srcObject = remoteStream;
         });
 
         activeCall.on('close', () => { closeCallModal(); });
@@ -638,6 +680,7 @@
     });
 
     function closeCallModal() {
+      stopScreenShare();
       if (localStream) localStream.getTracks().forEach(track => track.stop());
       localVideo.srcObject = null;
       remoteVideo.srcObject = null;
@@ -646,6 +689,7 @@
       callStatusTitle.textContent = "Telemedicine Call";
       callStatusSubtitle.textContent = "Connecting...";
       answerCallBtn.classList.add('d-none');
+      shareScreenBtn.classList.add('d-none');
     }
 
     // CHAT LOGIC
