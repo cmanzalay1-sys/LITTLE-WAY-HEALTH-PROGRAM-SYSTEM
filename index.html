@@ -521,10 +521,11 @@
           listenForSeminarianChats(user.uid);
         }
       } else {
-        loginView.classList.add('d-none');
+        loginView.classList.remove('d-none'); // Fixed blank login screen bug
         dashboardView.classList.add('d-none');
         adminDashboardView.classList.add('d-none');
         userHeaderControls.classList.add('d-none');
+        userHeaderControls.classList.remove('d-flex');
         if (peer) peer.destroy();
         if (chatUnsubscribe) chatUnsubscribe();
       }
@@ -610,7 +611,6 @@
           localVideo.srcObject = screenStream;
           videoContainerWrapper.classList.remove('d-none');
 
-          // Replace track in active call so the other participant sees the presentation
           const videoTrack = screenStream.getVideoTracks()[0];
           if (activeCall && activeCall.peerConnection) {
             const sender = activeCall.peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
@@ -621,9 +621,7 @@
           shareScreenBtn.classList.remove('btn-warning');
           shareScreenBtn.classList.add('btn-danger');
 
-          videoTrack.onended = () => {
-            stopScreenShare();
-          };
+          videoTrack.onended = () => { stopScreenShare(); };
         } else {
           stopScreenShare();
         }
@@ -637,7 +635,6 @@
         screenStream.getTracks().forEach(track => track.stop());
         screenStream = null;
       }
-      // Revert back to camera if available
       if (localStream) {
         localVideo.srcObject = localStream;
         const videoTrack = localStream.getVideoTracks()[0];
@@ -692,12 +689,18 @@
       shareScreenBtn.classList.add('d-none');
     }
 
-    // CHAT LOGIC
+    // REAL-TIME CHAT (JS-Sorted to avoid composite index errors)
     function listenForSeminarianChats(uid) {
       if (chatUnsubscribe) chatUnsubscribe();
-      const q = query(collection(db, "chat_messages"), where("chatId", "==", uid), orderBy("createdAt", "asc"));
+      const q = query(collection(db, "chat_messages"), where("chatId", "==", uid));
       chatUnsubscribe = onSnapshot(q, (snapshot) => {
-        const msgs = snapshot.docs.map(doc => doc.data());
+        const msgs = snapshot.docs
+          .map(doc => ({
+            ...doc.data(),
+            rawTime: doc.data().createdAt ? doc.data().createdAt.toMillis() : Date.now()
+          }))
+          .sort((a, b) => a.rawTime - b.rawTime);
+
         if (msgs.length === 0) {
           chatMessagesContainer.innerHTML = `<p class="text-muted text-center small my-auto">No messages yet.</p>`;
           return;
@@ -734,9 +737,15 @@
       adminChatForm.classList.remove('d-none');
 
       if (chatUnsubscribe) chatUnsubscribe();
-      const q = query(collection(db, "chat_messages"), where("chatId", "==", userId), orderBy("createdAt", "asc"));
+      const q = query(collection(db, "chat_messages"), where("chatId", "==", userId));
       chatUnsubscribe = onSnapshot(q, (snapshot) => {
-        const msgs = snapshot.docs.map(doc => doc.data());
+        const msgs = snapshot.docs
+          .map(doc => ({
+            ...doc.data(),
+            rawTime: doc.data().createdAt ? doc.data().createdAt.toMillis() : Date.now()
+          }))
+          .sort((a, b) => a.rawTime - b.rawTime);
+
         if (msgs.length === 0) {
           adminChatMessages.innerHTML = `<p class="text-muted text-center small my-auto">No messages yet.</p>`;
           return;
