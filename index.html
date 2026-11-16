@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LWCS Health Monitoring & Admin Portal</title>
+  <title>LWCS Health Monitoring & Voice Call Portal</title>
   <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- PeerJS CDN for WebRTC Voice Calling -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 </head>
 <body class="bg-light">
 
@@ -13,6 +15,24 @@
   <div id="loading-screen" class="container d-flex justify-content-center align-items-center min-vh-100">
     <div class="spinner-border text-primary" role="status">
       <span class="visually-hidden">Loading...</span>
+    </div>
+  </div>
+
+  <!-- INCOMING / ACTIVE VOICE CALL MODAL -->
+  <div class="modal fade" id="voiceCallModal" data-bs-backdrop="static" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content text-center p-4">
+        <h4 id="call-status-title" class="fw-bold mb-2">Voice Call</h4>
+        <p id="call-status-subtitle" class="text-muted small mb-4">Connecting...</p>
+        
+        <!-- Hidden Audio Element for WebRTC Stream -->
+        <audio id="remote-audio" autoplay></audio>
+
+        <div class="d-flex justify-content-center gap-3">
+          <button id="answer-call-btn" class="btn btn-success px-4 d-none">Answer</button>
+          <button id="end-call-btn" class="btn btn-danger px-4">End Call</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -87,7 +107,7 @@
               <line x1="104.5" y1="84" x2="95.5" y2="92.5" stroke="#d4af37" stroke-width="1.5" />
             </g>
           </svg>
-          <h4 class="mb-0" id="portal-title">Health Monitoring Portal</h4>
+          <h4 class="mb-0" id="portal-title">Health Monitoring & Voice Call Portal</h4>
         </div>
 
         <!-- User Info & Logout -->
@@ -110,12 +130,10 @@
 
           <h5 class="mb-4">Sign in with your Google account to continue</h5>
 
-          <!-- In-App Browser Warning -->
           <div id="inapp-warning" class="alert alert-warning text-start small mb-3 d-none">
             <strong>Opened in Messenger?</strong> Google Sign-In does not work inside Messenger's built-in browser. Please tap the <strong>⋮</strong> or <strong>⋯</strong> menu in the corner and select <strong>Open in Chrome / Browser</strong>.
           </div>
 
-          <!-- Auth Error Alert -->
           <div id="auth-error" class="alert alert-danger text-start small user-select-all d-none"></div>
 
           <div class="d-grid gap-3 col-md-8 mx-auto mt-4">
@@ -148,7 +166,6 @@
                   <h6 class="fw-bold text-primary mb-0">Seminarian Information</h6>
                   <span id="auto-save-indicator" class="small text-muted fst-italic">Auto-saved</span>
                 </div>
-                <!-- Seminarian Info Form (Auto-saves on change) -->
                 <form id="seminarian-form">
                   <div class="row g-2 mb-2">
                     <div class="col-md-6">
@@ -253,8 +270,8 @@
         <div id="admin-dashboard-view" class="d-none">
           <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-              <h3 class="fw-bold text-dark mb-0">Admin Tracing Dashboard</h3>
-              <p class="text-muted small mb-0">Live monitoring & management of all seminarians and logs. Only admins can view and manage records.</p>
+              <h3 class="fw-bold text-dark mb-0">Admin Tracing & Voice Call Dashboard</h3>
+              <p class="text-muted small mb-0">Monitor health logs and initiate direct voice calls with seminarians.</p>
             </div>
             <button id="admin-refresh-btn" class="btn btn-primary btn-sm">Refresh All Data</button>
           </div>
@@ -285,6 +302,7 @@
                       <th>Formation Level</th>
                       <th>Address</th>
                       <th>Email / ID</th>
+                      <th>Voice Call</th>
                     </tr>
                   </thead>
                   <tbody id="admin-profiles-tbody"></tbody>
@@ -363,13 +381,15 @@
     const googleProvider = new GoogleAuthProvider();
     googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-    // AUTHORIZED ADMIN EMAILS
     const ADMIN_EMAILS = [
       "cmanzalay1@gmail.com",
       "carlomanzalay20@gmail.com"
     ];
 
     let currentUser = null;
+    let peer = null;
+    let activeCall = null;
+    let localStream = null;
 
     // DOM Elements
     const loadingScreen = document.getElementById('loading-screen');
@@ -411,7 +431,6 @@
     const historyTableWrapper = document.getElementById('history-table-wrapper');
     const historyTbody = document.getElementById('history-tbody');
 
-    // Admin elements
     const adminRefreshBtn = document.getElementById('admin-refresh-btn');
     const adminProfilesLoading = document.getElementById('admin-profiles-loading');
     const adminProfilesEmpty = document.getElementById('admin-profiles-empty');
@@ -422,7 +441,15 @@
     const adminLogsTable = document.getElementById('admin-logs-table');
     const adminLogsTbody = document.getElementById('admin-logs-tbody');
 
-    // Live Clock & Date Interval
+    // Call Modal Elements
+    const voiceCallModal = new bootstrap.Modal(document.getElementById('voiceCallModal'));
+    const callStatusTitle = document.getElementById('call-status-title');
+    const callStatusSubtitle = document.getElementById('call-status-subtitle');
+    const answerCallBtn = document.getElementById('answer-call-btn');
+    const endCallBtn = document.getElementById('end-call-btn');
+    const remoteAudio = document.getElementById('remote-audio');
+
+    // Live Clock
     function updateClock() {
       const now = new Date();
       liveDateEl.textContent = now.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
@@ -436,7 +463,7 @@
     }
 
     // Auth State Listener
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, async (user) => {
       currentUser = user;
       loadingScreen.classList.add('d-none');
       mainPortal.classList.remove('d-none');
@@ -454,6 +481,9 @@
           userPhoto.classList.add('d-none');
         }
 
+        // Initialize PeerJS Connection using User UID as Peer ID
+        initPeer(user.uid);
+
         if (ADMIN_EMAILS.includes(user.email)) {
           portalTitle.textContent = "Admin Tracing Portal";
           dashboardView.classList.add('d-none');
@@ -468,14 +498,26 @@
           fetchUserHistory(user.uid);
         }
       } else {
-        loginView.classList.remove('d-none');
+        loginView.classList.add('d-none');
         dashboardView.classList.add('d-none');
         adminDashboardView.classList.add('d-none');
         userHeaderControls.classList.add('d-none');
-        userHeaderControls.classList.remove('d-flex');
-        historyTbody.innerHTML = '';
+        if (peer) peer.destroy();
       }
     });
+
+    // Initialize PeerJS
+    function initPeer(userId) {
+      peer = new Peer(userId); // Uses Firebase UID as unique calling identifier
+
+      peer.on('call', async (call) => {
+        activeCall = call;
+        answerCallBtn.classList.remove('d-none');
+        callStatusTitle.textContent = "Incoming Call";
+        callStatusSubtitle.textContent = "Admin is calling you...";
+        voiceCallModal.show();
+      });
+    }
 
     // Google Login
     googleLoginBtn.addEventListener('click', async () => {
@@ -489,10 +531,75 @@
     });
 
     logoutBtn.addEventListener('click', async () => {
+      if (peer) peer.destroy();
       await signOut(auth);
     });
 
-    // INSTANT AUTO-SAVE FOR SEMINARIAN INFO
+    // ADMIN CALL INITIATION
+    window.startVoiceCall = async function(seminarianUid, seminarianName) {
+      callStatusTitle.textContent = `Calling ${seminarianName}...`;
+      callStatusSubtitle.textContent = "Ringing...";
+      answerCallBtn.classList.add('d-none');
+      voiceCallModal.show();
+
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        const call = peer.call(seminarianUid, localStream);
+        activeCall = call;
+
+        call.on('stream', (remoteStream) => {
+          remoteAudio.srcObject = remoteStream;
+          callStatusTitle.textContent = "Connected";
+          callStatusSubtitle.textContent = `Voice call with ${seminarianName}`;
+        });
+
+        call.on('close', () => {
+          closeCallModal();
+        });
+      } catch (err) {
+        alert("Microphone access denied or unavailable.");
+        voiceCallModal.hide();
+      }
+    };
+
+    // SEMINARIAN ANSWER CALL
+    answerCallBtn.addEventListener('click', async () => {
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        activeCall.answer(localStream);
+        answerCallBtn.classList.add('d-none');
+        callStatusTitle.textContent = "Connected";
+        callStatusSubtitle.textContent = "Voice call active";
+
+        activeCall.on('stream', (remoteStream) => {
+          remoteAudio.srcObject = remoteStream;
+        });
+
+        activeCall.on('close', () => {
+          closeCallModal();
+        });
+      } catch (err) {
+        alert("Microphone permission required to answer call.");
+      }
+    });
+
+    // END CALL BUTTON
+    endCallBtn.addEventListener('click', () => {
+      if (activeCall) activeCall.close();
+      closeCallModal();
+    });
+
+    function closeCallModal() {
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
+      voiceCallModal.hide();
+      callStatusTitle.textContent = "Voice Call";
+      callStatusSubtitle.textContent = "Connecting...";
+      answerCallBtn.classList.add('d-none');
+    }
+
+    // AUTO-SAVE INFO
     let autoSaveTimer = null;
     function triggerAutoSave() {
       if (!currentUser) return;
@@ -539,7 +646,7 @@
       }
     }
 
-    // Temperature Helpers
+    // TEMPERATURE RECORDING
     function getTempInCelsius() {
       const val = parseFloat(temperatureInput.value);
       if (isNaN(val)) return null;
@@ -684,9 +791,8 @@
       historyEmpty.classList.remove('d-none');
     });
 
-    // ADMIN TRACING FUNCTIONS
+    // ADMIN DATA & CALL BUTTON RENDERING
     async function loadAdminData() {
-      // 1. Load Profiles
       adminProfilesLoading.classList.remove('d-none');
       adminProfilesTable.classList.add('d-none');
       adminProfilesEmpty.classList.add('d-none');
@@ -701,6 +807,11 @@
               <td>${p.level || 'N/A'}</td>
               <td>${p.address || 'N/A'}</td>
               <td>${p.email || 'N/A'}</td>
+              <td>
+                <button class="btn btn-outline-success btn-sm" onclick="startVoiceCall('${p.userId}', '${p.name || 'Seminarian'}')">
+                  📞 Call
+                </button>
+              </td>
             </tr>
           `).join('');
           adminProfilesTable.classList.remove('d-none');
@@ -713,7 +824,6 @@
         adminProfilesLoading.classList.add('d-none');
       }
 
-      // 2. Load Temperature Logs
       adminLogsLoading.classList.remove('d-none');
       adminLogsTable.classList.add('d-none');
       adminLogsEmpty.classList.add('d-none');
@@ -735,7 +845,7 @@
               </tr>
             `;
           }).join('');
-          adminLogsTable.classList.remove('d-none');
+          adminLogsTable.classList.print ? null : adminLogsTable.classList.remove('d-none');
         } else {
           adminLogsEmpty.classList.remove('d-none');
         }
